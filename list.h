@@ -47,6 +47,9 @@ node_t * list_insert_before(list_t * list, node_t * after, void * item);
 
 int list_size(list_t * list);
 node_t * list_get(list_t* list, int index);
+node_t * list_get_last(list_t * list);
+node_t * list_get_first(list_t * list);
+int list_index_of_node(list_t * list, node_t * node);
 
 #define foreach(i, list) for (node_t * i = (list)->head; i != NULL; i = i->next)
 #define foreachr(i, list) for (node_t * i = (list)->tail; i != NULL; i = i->prev)

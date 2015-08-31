@@ -254,3 +254,28 @@ node_t * list_get(list_t* list, int index) {
 	}
 	return NULL;
 }
+
+node_t * list_get_last(list_t * list) {
+	node_t * i = NULL;
+	foreach(item, list) {
+		i = item;
+	}
+	return i;
+}
+
+node_t * list_get_first(list_t * list) {
+	foreach(item, list) {
+		return item;
+	}
+	return NULL;
+}
+
+int list_index_of_node(list_t * list, node_t * node) {
+	int i = 0;
+	foreach(n, list) {
+		if(n==node)
+			return i;
+		i++;
+	}
+	return -1;
+}

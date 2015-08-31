@@ -40,5 +40,10 @@ void push_buff(Point cursorPos, int c) {
 		list_insert_before(rownode->value, node_char, (void*)c);
 	else
 		list_insert(rownode->value, (void*)c);
-	if(c == K_NEWLINE) create_line();
+	if(c == K_NEWLINE) {
+		/* Move everything after \n to the next line */
+
+		/* Check if we want to insert or create a new line */
+		create_line();
+	}
 }

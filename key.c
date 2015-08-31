@@ -7,23 +7,10 @@
 #include "key.h"
 #include "buffer.h"
 #include "render.h"
+#include "cursor.h"
 #include <stdio.h>
 #include <curses.h>
 #include <stdint.h>
-
-#define IGNORE -1
-#define UP 0
-#define DOWN 1
-#define LEFT 0
-#define RIGHT 1
-
-#define VMOVE(DIR) term->update(DIR, IGNORE);
-#define HMOVE(DIR) term->update(IGNORE, DIR);
-
-Point old;
-#define GOTO(x,y) old = term->go_to(x, y)
-#define GOTOSTART() term->cur.x = 0;
-#define RETCUR() term->go_to(old.x, old.y)
 
 uint8_t is_esc = 0;
 
@@ -32,8 +19,9 @@ int consume_escape(int ch) {
 		is_esc = 1;
 		getch(); /* consume '[' */
 		return getch();
-	} else
+	} else {
 		return ch;
+	}
 }
 
 void handle_escape(term_t * term, int escode) {
@@ -42,14 +30,18 @@ void handle_escape(term_t * term, int escode) {
 	switch(escode) {
 	case K_UP:
 		VMOVE(UP);
+		GOTOLAST();
 		break;
 	case K_DOWN:
 		VMOVE(DOWN);
+		GOTOLAST();
 		break;
 	case K_RIGHT:
+		OVERFLOW();
 		HMOVE(RIGHT);
 		break;
 	case K_LEFT:
+		UNDERFLOW();
 		HMOVE(LEFT);
 		break;
 	}
@@ -64,7 +56,7 @@ void handle_normal(term_t * term, int c) {
 	switch(c) {
 	case K_NEWLINE:
 		VMOVE(DOWN);
-		GOTOSTART();
+		GOTOFIRST();
 		break;
 	case K_BACKSPACE:
 		HMOVE(LEFT);

@@ -27,7 +27,6 @@ void render_all(term_t * term) {
 	/* Render whole buffer from start to end
 	 * (respecting the window constraints and
 	 * the sizes for each line and column) */
-	clear();
 
 	Point old_cur = term->cur;
 	int x = 0, y = 0;
