@@ -9,16 +9,23 @@
 
 #include "term.h"
 #include "key.h"
-#include <stdio.h>
+#include "render.h"
 
+#include "list.h"
+#include "buffer.h"
+#include <stdio.h>
+#include <stdlib.h>
 int main(int argc, char ** argv) {
-	term_t term = init_term();
-	term.clear();
+	term_t * term = init_term();
+	term->clear();
+	init_renderer();
 
 	while(1) {
 		key_handle(term);
+		render_all(term);
 	}
 
 	clean_term(term);
+	clean_renderer();
 	return 0;
 }

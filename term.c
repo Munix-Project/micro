@@ -6,22 +6,65 @@
  */
 #include "term.h"
 #include <termios.h>
-#include <stdio.h>
-#include <stdint.h>
 #include <stdlib.h>
-#include <curses.h>
+#include <ncurses.h>
 #include <sys/ioctl.h>
-#include <string.h>
-#include <unistd.h>
 
-term_t thisterm;
+term_t * thisterm;
 
-void update_cursor() {
-	getyx(curscr, thisterm.cur.y, thisterm.cur.x);
+Point get_term_size() {
+	Point size;
+    struct winsize w;
+    ioctl(0, TIOCGWINSZ, &w);
+	size.x = w.ws_col;
+	size.y = w.ws_row;
+	return size;
+}
+
+void fix_resize() {
+	if(thisterm->cur.x >= thisterm->size.x - 1)
+		thisterm->cur.x = thisterm->size.x - 2;
+	if(thisterm->cur.y >= thisterm->size.y - 1)
+		thisterm->cur.y = thisterm->size.y - 2;
+}
+
+void update_term_size() {
+	thisterm->size = get_term_size();
+	fix_resize();
+}
+
+void update_cursor(uint8_t movedown, uint8_t moveright) {
+	if(movedown == 1 && thisterm->cur.y < thisterm->size.y - 1)
+		thisterm->cur.y++;
+	else if(!movedown && thisterm->cur.y > 0)
+		thisterm->cur.y--;
+
+	if(moveright == 1 && thisterm->cur.x < thisterm->size.x - 1)
+		thisterm->cur.x++;
+	else if(!moveright && thisterm->cur.x > 0)
+		thisterm->cur.x--;
+}
+
+void update_all() {
+	update_term_size();
+}
+
+Point cursor_goto(int x, int y) {
+	Point old;
+	old.x = thisterm->cur.x;
+	old.y = thisterm->cur.y;
+
+	if(x >= thisterm->size.x - 1)
+		thisterm->cur.x = x = thisterm->size.x - 2;
+	if(y >= thisterm->size.y - 1)
+		thisterm->cur.y = y = thisterm->size.y - 2;
+
+	move(y, x);
+	return old;
 }
 
 void clear_screen() {
-	printf("\e[0;0H\e[2J");
+	clear();
 }
 
 int getchne() {
@@ -35,35 +78,29 @@ int getchne() {
 
 int readkey() {
 	int c = getchne();
-	update_cursor();
+	update_all();
 	return c;
 }
 
-Point get_term_size() {
-	Point size;
-    struct winsize w;
-    ioctl(0, TIOCGWINSZ, &w);
-	size.x = w.ws_col;
-	size.y = w.ws_row;
-	return size;
-}
-
-term_t init_term() {
+term_t * init_term() {
 	initscr();
 	noecho();
+	raw();
 	timeout(0);
 
-	thisterm.cur.x = 0;
-	thisterm.cur.y = 0;
-	thisterm.size = get_term_size();
+	thisterm = malloc(sizeof(term_t));
+	thisterm->cur.x = thisterm->cur.y = 0;
+	update_all();
 
-	thisterm.read = readkey;
-	thisterm.clear = clear_screen;
+	thisterm->read = readkey;
+	thisterm->clear = clear_screen;
+	thisterm->go_to = cursor_goto;
+	thisterm->update = update_cursor;
 
 	return thisterm;
 }
 
-void clean_term(term_t t) {
-
+void clean_term(term_t * t) {
+	free(t);
 	endwin();
 }

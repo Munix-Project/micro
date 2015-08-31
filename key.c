@@ -5,19 +5,25 @@
  *      Author: miguel
  */
 #include "key.h"
+#include "buffer.h"
+#include "render.h"
 #include <stdio.h>
 #include <curses.h>
 #include <stdint.h>
 
-/* keys that don't belong to ncurses */
-enum KEYS{
-	K_NEWLINE 	= 	10,
-	K_ESC 		= 	27,
-	K_UP 		= 	'A',
-	K_DOWN 		= 	'B',
-	K_LEFT 		= 	'C',
-	K_RIGHT 	= 	'D'
-};
+#define IGNORE -1
+#define UP 0
+#define DOWN 1
+#define LEFT 0
+#define RIGHT 1
+
+#define VMOVE(DIR) term->update(DIR, IGNORE);
+#define HMOVE(DIR) term->update(IGNORE, DIR);
+
+Point old;
+#define GOTO(x,y) old = term->go_to(x, y)
+#define GOTOSTART() term->cur.x = 0;
+#define RETCUR() term->go_to(old.x, old.y)
 
 uint8_t is_esc = 0;
 
@@ -30,31 +36,56 @@ int consume_escape(int ch) {
 		return ch;
 }
 
-void handle_escape(int escode) {
+void handle_escape(term_t * term, int escode) {
+	Point old_cur = term->cur;
+
 	switch(escode) {
-	case K_UP: 		printf("\e[1A\r"); 	break;
-	case K_DOWN: 	printf("\e[1B\r"); 	break;
-	case K_LEFT: 	printf("\e[1C"); 	break;
-	case K_RIGHT: 	printf("\e[1D"); 	break;
+	case K_UP:
+		VMOVE(UP);
+		break;
+	case K_DOWN:
+		VMOVE(DOWN);
+		break;
+	case K_RIGHT:
+		HMOVE(RIGHT);
+		break;
+	case K_LEFT:
+		HMOVE(LEFT);
+		break;
 	}
+
+	update_cursor_visual(term, old_cur);
 	is_esc = 0;
 }
 
-void handle_normal(int c) {
-	if(c == K_NEWLINE)
-		printf("\r");
-	printf("%c", c);
+void handle_normal(term_t * term, int c) {
+	Point old_cur = term->cur;
+
+	switch(c) {
+	case K_NEWLINE:
+		VMOVE(DOWN);
+		GOTOSTART();
+		break;
+	case K_BACKSPACE:
+		HMOVE(LEFT);
+		break;
+	default:
+		HMOVE(RIGHT);
+		break;
+	}
+
+	push_buff(old_cur, c);
+	update_cursor_visual(term, old_cur);
 }
 
-void key_handle(term_t term) {
+void key_handle(term_t * term) {
 	int c;
-	if((c = term.read()) == TERM_NO_AVAIL) /* No key on the keyboard was hit */
+	if((c = term->read()) == TERM_NO_AVAIL) /* No key on the keyboard was hit */
 		return;
 
 	int c_cpy = consume_escape(c);
 	if(is_esc)
-		handle_escape(c_cpy);
+		handle_escape(term, c_cpy);
 	else
-		handle_normal(c_cpy);
-	fflush(stdout);
+		handle_normal(term, c_cpy);
 }
