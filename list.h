@@ -51,7 +51,10 @@ node_t * list_get_last(list_t * list);
 node_t * list_get_first(list_t * list);
 int list_index_of_node(list_t * list, node_t * node);
 
+node_t * list_get_next_nth(node_t* node, int increments);
+
 #define foreach(i, list) for (node_t * i = (list)->head; i != NULL; i = i->next)
 #define foreachr(i, list) for (node_t * i = (list)->tail; i != NULL; i = i->prev)
+#define forl(j,cond,inc,list) j; for(node_t * node = list_get(list,i); node != NULL && cond; node=list_get_next_nth(node,inc), i++)
 
 #endif /* HELIOS_SRC_USR_INCLUDE_LIST_H_ */

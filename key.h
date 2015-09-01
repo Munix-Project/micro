@@ -13,6 +13,7 @@
 /* keys that don't belong to ncurses */
 enum KEYS{
 	K_NEWLINE 	= 	10,
+	K_CARRIAGE	= 	'\r',
 	K_BACKSPACE =	127,
 	K_ESC 		= 	27,
 	K_UP 		= 	'A',

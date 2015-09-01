@@ -152,9 +152,8 @@ node_t * list_find(list_t * list, void * value) {
 int list_index_of(list_t * list, void * value) {
 	int i = 0;
 	foreach(item, list) {
-		if (item->value == value) {
+		if (item->value == value)
 			return i;
-		}
 		i++;
 	}
 	return -1; /* not found */
@@ -278,4 +277,14 @@ int list_index_of_node(list_t * list, node_t * node) {
 		i++;
 	}
 	return -1;
+}
+
+node_t * list_get_next_nth(node_t* node, int increments) {
+	if(increments < 0)
+		while(node && increments++ < 0)
+			node=node->prev;
+	else
+		while(node && increments--)
+			node=node->next;
+	return node;
 }

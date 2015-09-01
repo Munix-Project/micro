@@ -14,9 +14,9 @@ term_t * thisterm;
 
 Point get_term_size() {
 	Point size;
-    struct winsize w;
+	struct winsize w;
     ioctl(0, TIOCGWINSZ, &w);
-	size.x = w.ws_col;
+    size.x = w.ws_col;
 	size.y = w.ws_row;
 	return size;
 }

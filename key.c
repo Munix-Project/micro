@@ -36,14 +36,19 @@ void handle_escape(term_t * term, int escode) {
 		VMOVE(DOWN);
 		GOTOLAST();
 		break;
-	case K_RIGHT:
-		OVERFLOW();
-		HMOVE(RIGHT);
+	case K_RIGHT: {
+		node_t * next_col = thiscol(term, thisrow(term));
+		if(next_col && next_col->value != '\r' && next_col->value !='\n')
+			HMOVE(RIGHT);
+		else
+			OVERFLOW();
 		break;
-	case K_LEFT:
+	}
+	case K_LEFT: {
 		UNDERFLOW();
 		HMOVE(LEFT);
 		break;
+	}
 	}
 
 	update_cursor_visual(term, old_cur);
@@ -60,6 +65,7 @@ void handle_normal(term_t * term, int c) {
 		break;
 	case K_BACKSPACE:
 		HMOVE(LEFT);
+		goto NOPUSH;
 		break;
 	default:
 		HMOVE(RIGHT);
@@ -67,6 +73,7 @@ void handle_normal(term_t * term, int c) {
 	}
 
 	push_buff(old_cur, c);
+	NOPUSH:
 	update_cursor_visual(term, old_cur);
 }
 

@@ -7,9 +7,8 @@
 
 #include "render.h"
 #include "buffer.h"
-#include <ncurses.h>
+#include "key.h"
 #include <stdio.h>
-#include <signal.h>
 
 Point old;
 #define GOTO(x,y) old = term->go_to(x, y)
@@ -28,6 +27,8 @@ void render_all(term_t * term) {
 	 * (respecting the window constraints and
 	 * the sizes for each line and column) */
 
+	term->clear();
+
 	Point old_cur = term->cur;
 	int x = 0, y = 0;
 	foreach(row, micro_buff.buff) {
@@ -35,7 +36,6 @@ void render_all(term_t * term) {
 			int char_ = col->value;
 			GOTO(x, y);
 			addch(char_);
-			if(char_ == '\n') break;
 			x++;
 		}
 		x = 0;
@@ -51,7 +51,7 @@ uint8_t is_loc_void(Point loc) {
 	node_t * rownode = list_get(micro_buff.buff, loc.y);
 	if(rownode) {
 		node_t * row_loc = list_get(rownode->value, loc.x-1 < 0 ? loc.x : loc.x - 1);
-		if(row_loc)
+		if(row_loc && row_loc->value!='\n' && row_loc->value != K_CARRIAGE)
 			return 0;
 		else
 			return 1;
@@ -61,8 +61,18 @@ uint8_t is_loc_void(Point loc) {
 }
 
 void update_cursor_visual(term_t * term, Point old_cursor) {
-	if(!is_loc_void(term->cur))
+	if(!is_loc_void(term->cur)) {
 		GOTO(term->cur.x, term->cur.y);
-	else
-		term->cur = old_cursor;
+	} else {
+		/* Allow cursor to jump to next line. This is because the newline has just '\r' in it, and \r is considered a void cell */
+		node_t * thisr = thisrow(term);
+		node_t * thiscolumn = NULL;
+		if(thisr)
+			thiscolumn = thiscol(term, thisr);
+		if(thiscolumn) {
+			if(thiscolumn->value != K_CARRIAGE && thiscolumn->value != K_NEWLINE)
+				term->cur = old_cursor;
+		} else
+			term->cur = old_cursor;
+	}
 }
