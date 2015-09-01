@@ -24,7 +24,7 @@ Point old;
 #define GOTO(x,y) old = term->go_to(x, y)
 #define RETCUR() term->go_to(old.x, old.y)
 #define GOTOFIRST() term->cur.x = 0;
-#define GOTOLAST() { node_t * row = list_get(micro_buff.buff, term->cur.y); \
+#define GOTOLAST() { node_t * row = list_get(micro_buff.buff, term->cur.y - TOP_MARGIN); \
 					 if(row && is_loc_void(term->cur) && list_size(row->value)) {\
 						term->cur.x = list_index_of_node(row->value, list_find(row->value, K_CARRIAGE)); \
 						if(is_loc_void(term->cur)) \
@@ -32,12 +32,12 @@ Point old;
 							if(is_loc_void(term->cur)) \
 								term->cur.x = 0; \
 						}}
-#define UNDERFLOW() {if(!term->cur.x && term->cur.y) { \
-							node_t * prevrow = list_get(micro_buff.buff, term->cur.y - 1); \
+#define UNDERFLOW() {if(!term->cur.x && (term->cur.y - TOP_MARGIN)) { \
+							node_t * prevrow = list_get(micro_buff.buff, (term->cur.y - TOP_MARGIN) - 1); \
 							term->cur.y--; \
 							term->cur.x = list_index_of_node(prevrow->value, list_find(prevrow->value, K_NEWLINE)) + 1; \
 						}}
-#define OVERFLOW(row) 	{node_t * nextrow = list_get(micro_buff.buff, term->cur.y + 1); \
+#define OVERFLOW(row) 	{node_t * nextrow = list_get(micro_buff.buff, (term->cur.y - TOP_MARGIN) + 1); \
 						if(nextrow) { \
 							term->cur.y++; \
 							term->cur.x = 0; \

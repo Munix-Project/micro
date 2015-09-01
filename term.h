@@ -29,7 +29,7 @@ typedef struct {
 	Point cur;
 	Point size;
 	getkey read;
-	clrscr clear;
+	clrscr clr;
 	cur_goto go_to;
 	updatecur update;
 	int modes[MODE_COUNT];

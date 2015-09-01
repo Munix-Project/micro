@@ -5,6 +5,7 @@
  *      Author: miguel
  */
 #include "term.h"
+#include "window.h"
 #include <termios.h>
 #include <stdlib.h>
 #include <ncurses.h>
@@ -89,11 +90,12 @@ term_t * init_term() {
 	timeout(0);
 
 	thisterm = malloc(sizeof(term_t));
-	thisterm->cur.x = thisterm->cur.y = 0;
+	thisterm->cur.x = 0;
+	thisterm->cur.y = TOP_MARGIN;
 	update_all();
 
 	thisterm->read = readkey;
-	thisterm->clear = clear_screen;
+	thisterm->clr = clear_screen;
 	thisterm->go_to = cursor_goto;
 	thisterm->update = update_cursor;
 

@@ -8,6 +8,7 @@
 #include "buffer.h"
 #include "render.h"
 #include "cursor.h"
+#include "window.h"
 #include <stdio.h>
 #include <curses.h>
 #include <stdint.h>

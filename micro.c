@@ -14,25 +14,8 @@
 #include "list.h"
 #include <stdio.h>
 int main(int argc, char ** argv) {
-	/*list_t * l = list_create();
-	list_insert(l, 1);
-	list_insert(l, 2);
-	list_insert(l, 3);
-
-	list_remove(l,1);
-
-	printf("%d\n", list_size(l));
-
-	forl(int i=0,1,1,l){
-
-		printf("%d, ", node->value);
-	}
-
-	fflush(stdout);
-
-	for(;;);*/
 	term_t * term = init_term();
-	term->clear();
+	term->clr();
 	init_renderer();
 
 	while(1) {

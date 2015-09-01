@@ -9,6 +9,7 @@
 #define RENDER_H_
 
 #include "term.h"
+#include <curses.h>
 
 extern void init_renderer();
 extern void clean_renderer();
