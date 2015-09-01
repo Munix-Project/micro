@@ -10,6 +10,4 @@
 
 #define TOP_MARGIN 2
 
-
-
 #endif /* WINDOW_H_ */

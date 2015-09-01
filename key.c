@@ -39,7 +39,7 @@ void handle_escape(term_t * term, int escode) {
 		break;
 	case K_RIGHT: {
 		node_t * next_col = thiscol(term, thisrow(term));
-		if(next_col && next_col->value != '\r' && next_col->value !='\n')
+		if(next_col && next_col->value != K_CARRIAGE && next_col->value != K_NEWLINE)
 			HMOVE(RIGHT);
 		else
 			OVERFLOW();
@@ -65,16 +65,17 @@ void handle_normal(term_t * term, int c) {
 		GOTOFIRST();
 		break;
 	case K_BACKSPACE:
+		if(!term->cur.x)
+			UNDERFLOW();
 		HMOVE(LEFT);
-		goto NOPUSH;
 		break;
+	case K_DEL: /* The cursor shall not move */ break;
 	default:
 		HMOVE(RIGHT);
 		break;
 	}
 
 	push_buff(old_cur, c);
-	NOPUSH:
 	update_cursor_visual(term, old_cur);
 }
 

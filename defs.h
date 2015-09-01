@@ -13,4 +13,7 @@ typedef struct {
 	int y;
 } Point;
 
+#define MICRO_NAME "Munix Micro"
+#define NEW_FILE "New File"
+
 #endif /* DEFS_H_ */

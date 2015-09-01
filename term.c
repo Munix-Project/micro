@@ -65,7 +65,12 @@ Point cursor_goto(int x, int y) {
 }
 
 void clear_screen() {
-	clear();
+	for(int y = 0; y < thisterm->size.y; y++)
+		for(int x = 0; x < thisterm->size.x; x++) {
+			move(y, x);
+			addch(' ');
+		}
+	move(0, 0);
 }
 
 int getchne() {

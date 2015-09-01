@@ -50,10 +50,59 @@ node_t * thiscol(term_t * term, node_t * row) {
 	return list_get(row->value, term->cur.x);
 }
 
+void remove_from_pos_until_empty(list_t* line, int index) {
+	for(int i=0;;i++) {
+		if(!list_get(line,index)) break;
+		list_remove(line, index);
+	}
+}
+
+void func_buff(Point cursorPos, node_t * row, node_t * col, int c) {
+	switch(c) {
+	case K_BACKSPACE:
+		if(!cursorPos.x && row->prev) {
+			/* Copy this line, append it to the previous one and delete this line */
+			node_t * prev_newline = list_find(row->prev->value, K_NEWLINE);
+			forl(int i=0, 1, 1, (list_t*)row->value)
+				list_insert_before(row->prev->value, prev_newline, node->value);
+
+			remove_from_pos_until_empty(row->value, 0);
+			list_remove(micro_buff.buff, cursorPos.y - TOP_MARGIN);
+		} else {
+			list_remove(row->value, cursorPos.x - 1);
+		}
+		break;
+	case K_DEL:
+		if(!row->next && col->next) break;
+
+		if(col->value == K_NEWLINE){
+			/* Remove new line, bring the next line to this one and get rid of the next line */
+			forl(int i=0, 1, 1, (list_t*)row->next->value)
+				list_insert_before(row->value, col, node->value);
+			remove_from_pos_until_empty(row->next->value, 0);
+			list_remove(micro_buff.buff, (cursorPos.y + 1) - TOP_MARGIN);
+		} else if(list_get_last(row->value) == col){
+			/* Don't delete \r if that's the only thing that is on this line (this means there's no \n to delete) */
+		} else {
+			list_remove(row->value, cursorPos.x);
+		}
+		break;
+	}
+}
+
 void push_buff(Point cursorPos, int c) {
 	/* push char into micro_buff on a certain location */
 	node_t * rownode = list_get(micro_buff.buff, (cursorPos.y - TOP_MARGIN));
 	node_t * node_char = list_get(rownode->value, cursorPos.x);
+
+	if(c == K_BACKSPACE || c == K_DEL) {
+		/* A special character has been pushed into the buffer.
+		 * Normally, this character should not be actually pushed.
+		 * Instead, it affects the contents of the buffer. */
+		func_buff(cursorPos, rownode, node_char, c);
+		return;
+	}
+
 	if(node_char)
 		list_insert_before(rownode->value, node_char, (void*)c);
 	else
@@ -71,9 +120,11 @@ void push_buff(Point cursorPos, int c) {
 
 		/* Remove old characters from previous line */
 		int newpos = list_index_of(thisline, K_NEWLINE) + 1;
-		for(int i=0;;i++) {
-			if(!list_get(thisline,newpos)) break;
-			list_remove(thisline, newpos);
-		}
+		remove_from_pos_until_empty(thisline, newpos);
+
+	} else if(!rownode->next) {
+		/* Create new line with carriage return */
+		list_insert_before(rownode->value, list_find(rownode->value, K_CARRIAGE), K_NEWLINE);
+		create_line((cursorPos.y - TOP_MARGIN) + 1);
 	}
 }

@@ -9,6 +9,7 @@
 #include "buffer.h"
 #include "key.h"
 #include "window.h"
+#include "defs.h"
 #include <stdio.h>
 
 Point old;
@@ -29,13 +30,13 @@ void draw_top_margin(term_t * term) {
 	attron(TOP_MARGIN_ATTR);
 
 	Point oldp = term->cur;
-
+	GOTO(0,0);
 	for(int i=0;i<term->size.x;i++)
 		addch(' ');
 
-	GOTO(3,0); addstr("Munix Micro");
-	char str[] = "New file";
-	GOTO((term->size.x / 2) - strlen(str),0); addstr(str);
+	GOTO(3,0); addstr(MICRO_NAME);
+	char str[] = NEW_FILE;
+	GOTO((term->size.x / 2) - (strlen(str) / 2),0); addstr(str);
 
 	attroff(TOP_MARGIN_ATTR);
 	GOTO(oldp.x, oldp.y);
@@ -45,7 +46,6 @@ void render_all(term_t * term) {
 	/* Render whole buffer from start to end
 	 * (respecting the window constraints and
 	 * the sizes for each line and column) */
-
 	term->clr();
 
 	draw_top_margin(term);
