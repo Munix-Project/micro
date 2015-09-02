@@ -17,4 +17,7 @@ extern void render_all(term_t * term);
 extern uint8_t is_loc_void(Point loc);
 extern void update_cursor_visual(term_t * term, Point old_cursor);
 
+extern int render_x_off;
+extern int render_y_off;
+
 #endif /* RENDER_H_ */

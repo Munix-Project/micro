@@ -12,12 +12,7 @@
 #include "list.h"
 #include "term.h"
 
-typedef struct {
-	list_t * buff;
-	list_t * sizes;
-} mbuff_t;
-
-extern mbuff_t micro_buff;
+extern list_t * micro_buff;
 
 extern void init_buff();
 extern void clean_buff();
