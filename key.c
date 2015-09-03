@@ -31,20 +31,19 @@ void handle_escape(term_t * term, int escode) {
 	switch(escode) {
 	case K_UP:
 		/* be REALLY careful with this macro */
-		VSCROLL()
-
-		} else { /* there's a hidden if inside hscroll, tricky one! */
+		VSCROLL() }
+		else { /* there's a hidden if inside hscroll, tricky one! */
 			VMOVE(UP);
 			GOTOLAST();
 		}
 		break;
-	case K_DOWN:
-		if(term->cur.y > term->size.y - (BOTTOM_MARGIN + 2)) {
+	case K_DOWN: {
+		if(term->cur.y > term->size.y - (BOTTOM_MARGIN + 2) && !is_loc_void(term->cur)) {
 			render_y_off += DELTA_BOTTOM_SCROLL;
-			VMOVEN(UP, DELTA_BOTTOM_SCROLL - 1);
 		} else {
 			VMOVE(DOWN);
 			GOTOLAST();
+		}
 		}
 		break;
 	case K_RIGHT: {
@@ -54,7 +53,7 @@ void handle_escape(term_t * term, int escode) {
 			HMOVE(RIGHT); /* damn cursor won't go to its place */
 		} else {
 			node_t * next_col = thiscol(term, thisrow(term));
-			if(next_col && next_col->value != K_CARRIAGE && next_col->value != K_NEWLINE)
+			if(next_col && next_col->value != K_NEWLINE)
 				HMOVE(RIGHT);
 			else
 				OVERFLOW();
@@ -85,19 +84,19 @@ void handle_normal(term_t * term, int c) {
 
 	switch(c) {
 	case K_NEWLINE:
-		/* be REALLY careful with this macro */
-		if(term->cur.y > term->size.y - (BOTTOM_MARGIN + 2)) {
+		if(term->cur.y > term->size.y - (BOTTOM_MARGIN + 2))
 			render_y_off+=DELTA_BOTTOM_SCROLL;
-			GOTOFIRST();
-		} else { /* there's a hidden if inside hscroll, tricky one! */
+		else
 			VMOVE(DOWN);
-			GOTOFIRST();
-		}
+		GOTOFIRST();
+
 		break;
 	case K_BACKSPACE:
-		if(!term->cur.x)
+		if(!term->cur.x) {
+			/* be REALLY careful with this macro */
+			VSCROLL()}
 			UNDERFLOW();
-
+		}
 		/* be REALLY careful with this macro */
 		HSCROLL()
 			/* Put cursor on the last character on the screen (but not on buffer) */

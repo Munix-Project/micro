@@ -14,24 +14,23 @@
 
 list_t * micro_buff;
 
-node_t * create_line(int y) {
+list_t * create_line(int y) {
 	list_t * l = list_create();
 
 	if(y > list_size(micro_buff)) {
 		/* Create new line */
 		list_insert(micro_buff, l);
-		list_insert(l, K_CARRIAGE);
 	} else {
 		node_t * nextline = list_get(micro_buff, y);
 		list_insert_before(micro_buff, nextline, l);
-		list_insert(l, K_CARRIAGE);
 	}
 	return l;
 }
 
 void init_buff() {
 	micro_buff = list_create();
-	create_line(0);
+	list_t * firstline = create_line(0);
+	list_insert(firstline, K_NEWLINE);
 }
 
 void clean_buff() {
@@ -44,11 +43,11 @@ void clean_buff() {
 }
 
 node_t * thisrow(term_t * term) {
-	return list_get(micro_buff, (term->cur.y - TOP_MARGIN));
+	return list_get(micro_buff, render_y_off + (term->cur.y - TOP_MARGIN));
 }
 
 node_t * thiscol(term_t * term, node_t * row) {
-	return list_get(row->value, term->cur.x);
+	return list_get(row->value, render_x_off + term->cur.x);
 }
 
 void remove_from_pos_until_empty(list_t* line, int index) {
@@ -75,7 +74,7 @@ void func_buff(Point cursorPos, node_t * row, node_t * col, int c) {
 		break;
 	case K_DEL:
 		/* Nothing else to delete, please don't corrupt my memory */
-		if(!row->next && col && col->value == K_CARRIAGE) break;
+		if(!row->next && col && col->value == K_NEWLINE) break;
 
 		if(col->value == K_NEWLINE) {
 			/* Remove new line, bring the next line to this one and get rid of the next line */
@@ -95,9 +94,10 @@ void func_buff(Point cursorPos, node_t * row, node_t * col, int c) {
 
 void push_buff(Point cursorPos, int c) {
 	/* push char into micro_buff on a certain location */
-	int y_off = (!render_y_off ? 0 : render_y_off - 1);
-	node_t * rownode = list_get(micro_buff, y_off + (cursorPos.y - TOP_MARGIN));
-	node_t * node_char = list_get(rownode->value, render_x_off + cursorPos.x);
+	int row_y = render_y_off + (cursorPos.y - TOP_MARGIN);
+	int row_x = render_x_off + cursorPos.x;
+	node_t * rownode = list_get(micro_buff, row_y);
+	node_t * node_char = list_get(rownode->value, row_x);
 
 	if(c == K_BACKSPACE || c == K_DEL) {
 		/* A special character has been pushed into the buffer.
@@ -110,25 +110,21 @@ void push_buff(Point cursorPos, int c) {
 	if(node_char)
 		list_insert_before(rownode->value, node_char, (void*)c);
 	else
-		list_insert_before(rownode->value, list_find(rownode->value, K_CARRIAGE)->prev, (void*)c);
+		list_insert_before(rownode->value, list_find(rownode->value, K_NEWLINE), (void*)c);
 
-	if(c == K_NEWLINE) {
+	if(c == K_NEWLINE || !rownode->next) {
 		/* Check if we want to insert or create a new line */
-		list_t * newline = create_line(y_off + (cursorPos.y - TOP_MARGIN) + 1);
+		list_t * newline = create_line(row_y + 1);
 		list_t * thisline = rownode->value;
 
 		/* Move everything after \n to the next line */
-	//	node_t * carriage_node = list_find(newline, K_CARRIAGE);
-	//	forl(int i = list_index_of(thisline, K_NEWLINE) + 1, 1, 1, thisline)
-	//		list_insert_before(newline, carriage_node, node->value);
+		if(c == K_NEWLINE) { /* Don't want to move stuff nore remove if we found a null line! */
+			forl(int i = list_index_of(thisline, K_NEWLINE) + 1, 1, 1, thisline)
+				list_insert(newline, node->value);
 
-		/* Remove old characters from previous line */
-	//	int newpos = list_index_of(thisline, K_NEWLINE) + 1;
-	//	remove_from_pos_until_empty(thisline, newpos);
-
-	} else if(!rownode->next) {
-		/* Create new line with carriage return */
-		list_insert_before(rownode->value, list_find(rownode->value, K_CARRIAGE), K_NEWLINE);
-		create_line(y_off + (cursorPos.y - TOP_MARGIN) + 1);
+			/* Remove old characters from previous line */
+			int newpos = list_index_of(thisline, K_NEWLINE) + 1;
+			remove_from_pos_until_empty(thisline, newpos);
+		}
 	}
 }

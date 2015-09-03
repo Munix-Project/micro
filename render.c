@@ -58,14 +58,11 @@ void render_all(term_t * term) {
 
 	Point old_cur = term->cur;
 
-	int row_count = list_size(micro_buff);
-
-	for(int y = 0, by = render_y_off; y < row_count; y++, by++) {
+	for(int y = 0, by = render_y_off; y < term->size.y - BOTTOM_MARGIN; y++, by++) {
 		node_t * row_node = list_get(micro_buff, by);
 		if(!row_node) break;
 
 		list_t * row = row_node->value;
-		int col_count = list_size(row);
 
 		for(int x = 0, bx = render_x_off; x <= term->size.x - RIGHT_MARGIN; x++, bx++) {
 			node_t * node_char = list_get(row, bx);
@@ -83,11 +80,11 @@ void render_all(term_t * term) {
 }
 
 uint8_t is_loc_void(Point loc) {
-	node_t * rownode = list_get(micro_buff, render_y_off + loc.y - TOP_MARGIN);
+	node_t * rownode = list_get(micro_buff, render_y_off + (loc.y - TOP_MARGIN));
 	if(rownode) {
 		loc.x += render_x_off;
 		node_t * row_loc = list_get(rownode->value, loc.x - 1 < 0 ? loc.x : loc.x - 1);
-		if(row_loc && row_loc->value!=K_NEWLINE && row_loc->value != K_CARRIAGE)
+		if(row_loc && row_loc->value!=K_NEWLINE)
 			return 0;
 		else
 			return 1;
@@ -106,7 +103,7 @@ void update_cursor_visual(term_t * term, Point old_cursor) {
 		if(thisr)
 			thiscolumn = thiscol(term, thisr);
 		if(thiscolumn) {
-			if(thiscolumn->value != K_CARRIAGE && thiscolumn->value != K_NEWLINE)
+			if(thiscolumn->value != K_NEWLINE)
 				term->cur = old_cursor;
 		} else {
 			term->cur = old_cursor;

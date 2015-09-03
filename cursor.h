@@ -26,21 +26,20 @@ Point old;
 #define GOTO(x,y) old = term->go_to(x, y)
 #define RETCUR() term->go_to(old.x, old.y)
 #define GOTOFIRST() term->cur.x = 0;
-#define GOTOLAST() { node_t * row = list_get(micro_buff, term->cur.y - TOP_MARGIN); \
+#define GOTOLAST() { node_t * row = list_get(micro_buff, render_y_off + (term->cur.y - TOP_MARGIN)); \
 					 if(row && is_loc_void(term->cur) && list_size(row->value)) {\
-						term->cur.x = list_index_of_node(row->value, list_find(row->value, K_CARRIAGE)); \
+						term->cur.x = list_index_of_node(row->value, list_find(row->value, K_NEWLINE)); \
 						if(is_loc_void(term->cur)) \
-							term->cur.x = list_index_of_node(row->value, list_find(row->value, K_NEWLINE));\
 							if(is_loc_void(term->cur)) \
 								term->cur.x = 0; \
 						}}
-#define UNDERFLOW() {if(!term->cur.x && (term->cur.y - TOP_MARGIN)) { \
-							 \
-							node_t * prevrow = list_get(micro_buff, (term->cur.y - TOP_MARGIN) - 1); \
+#define UNDERFLOW() {int y_off = render_y_off + (term->cur.y - TOP_MARGIN); \
+					 if(!term->cur.x && y_off) { \
+							node_t * prevrow = list_get(micro_buff, y_off - 1); \
 							term->cur.y--; \
 							term->cur.x = list_index_of_node(prevrow->value, list_find(prevrow->value, K_NEWLINE)) + 1; \
 						}}
-#define OVERFLOW(row) 	{node_t * nextrow = list_get(micro_buff, (term->cur.y - TOP_MARGIN) + 1); \
+#define OVERFLOW(row) 	{int y_off = render_y_off + (term->cur.y - TOP_MARGIN); node_t * nextrow = list_get(micro_buff, y_off + 1); \
 						if(nextrow) { \
 							term->cur.y++; \
 							term->cur.x = 0; \
@@ -49,6 +48,6 @@ Point old;
 #define HSCROLL_FINDLAST_ON_VIEW() for(int i=term->cur.x;i<term->size.x && !is_loc_void(term->cur);i++) \
 										HMOVE(RIGHT); \
 									HMOVEN(LEFT, 1);
-#define VSCROLL() if(term->cur.y < TOP_MARGIN + 1 && render_y_off) { render_y_off-=DELTA_TOP_SCROLL;
+#define VSCROLL() if(term->cur.y < TOP_MARGIN + 1 && render_y_off) { render_y_off-=DELTA_TOP_SCROLL; if(render_y_off<0) render_y_off = 0;
 
 #endif /* CURSOR_H_ */
