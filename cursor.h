@@ -26,23 +26,20 @@ Point old;
 #define GOTO(x,y) old = term->go_to(x, y)
 #define RETCUR() term->go_to(old.x, old.y)
 #define GOTOFIRST() term->cur.x = 0;
-#define GOTOLAST() { node_t * row = list_get(micro_buff, render_y_off + (term->cur.y - TOP_MARGIN)); \
+#define GOTOLAST() { node_t * row = thisrow(term); \
 					 if(row && is_loc_void(term->cur) && list_size(row->value)) {\
 						term->cur.x = list_index_of_node(row->value, list_find(row->value, K_NEWLINE)); \
 						if(is_loc_void(term->cur)) \
-							if(is_loc_void(term->cur)) \
-								term->cur.x = 0; \
+							term->cur.x = 0; \
 						}}
 
-#define UNDERFLOW() {int y_off = render_y_off + (term->cur.y - TOP_MARGIN); \
-					 if(!term->cur.x && y_off) { \
-							node_t * prevrow = list_get(micro_buff, y_off - 1); \
+#define UNDERFLOW() {if(!term->cur.x && render_y_off + (term->cur.y - TOP_MARGIN)) { \
+							node_t * prevrow = thisrow(term)->prev; \
 							term->cur.y--; \
 							term->cur.x = list_index_of_node(prevrow->value, list_find(prevrow->value, K_NEWLINE)) + 1; \
 						}}
 
-#define OVERFLOW(row) 	{int y_off = render_y_off + (term->cur.y - TOP_MARGIN); node_t * nextrow = list_get(micro_buff, y_off + 1); \
-						if(nextrow) { \
+#define OVERFLOW(row) 	{if(thisrow(term)->next) { \
 							term->cur.y++; \
 							term->cur.x = 0; \
 						}}

@@ -9,21 +9,26 @@
 #include "render.h"
 #include "cursor.h"
 #include "window.h"
-#include <stdio.h>
-#include <curses.h>
 #include <stdint.h>
+
+#define NEEDS_SCROLL_RIGHT() term->cur.x > term->size.x - RIGHT_MARGIN
+#define NEEDS_SCROLL_DOWN() term->cur.y > term->size.y - (BOTTOM_MARGIN + 2) && nextline && list_size(nextline->value)
+#define IS_CURSOR_ON_START() !term->cur.x
 
 uint8_t is_esc = 0;
 
-int consume_escape(int ch) {
-	if(ch == K_ESC){
-		is_esc = 1;
-		getch(); /* consume '[' */
-		return getch();
-	} else {
-		return ch;
-	}
+void cursor_scroll_right(term_t * term) {
+	/* Scroll right */
+	render_x_off+=DELTA_RIGHT_SCROLL;
+	HMOVEN(LEFT, DELTA_RIGHT_SCROLL);
+	HMOVE(RIGHT); /* damn cursor won't go to its place */
 }
+
+void cursor_scroll_down() {
+	render_y_off+=DELTA_BOTTOM_SCROLL;
+}
+
+/* XXX NOTE: Scroll left and up are done with HSCROLL and VSCROLL */
 
 void handle_escape(term_t * term, int escode) {
 	Point old_cur = term->cur;
@@ -31,8 +36,9 @@ void handle_escape(term_t * term, int escode) {
 	switch(escode) {
 	case K_UP:
 		/* be REALLY careful with this macro */
-		VSCROLL() }
+		VSCROLL() } /* Scroll up */
 		else { /* there's a hidden if inside hscroll, tricky one! */
+			/* Move cursor up */
 			VMOVE(UP);
 			GOTOLAST();
 		}
@@ -40,30 +46,33 @@ void handle_escape(term_t * term, int escode) {
 	case K_DOWN: {
 		/* Prevent the cursor from scrolling out of the "grid" */
 		node_t * nextline = thisrow(term)->next;
-		if(term->cur.y > term->size.y - (BOTTOM_MARGIN + 2) && nextline && list_size(nextline->value)) {
-			render_y_off += DELTA_BOTTOM_SCROLL;
+		if(NEEDS_SCROLL_DOWN()) {
+			cursor_scroll_down(); /* Scroll down */
 		} else {
+			/* Move cursor down */
 			VMOVE(DOWN);
 			GOTOLAST();
 		}
 		}
 		break;
 	case K_RIGHT: {
-		if(term->cur.x > term->size.x - RIGHT_MARGIN) {
-			render_x_off+=DELTA_RIGHT_SCROLL;
-			HMOVEN(LEFT, DELTA_RIGHT_SCROLL);
-			HMOVE(RIGHT); /* damn cursor won't go to its place */
+		if(NEEDS_SCROLL_RIGHT()) {
+			/* Scroll right */
+			cursor_scroll_right(term);
 		} else {
-			node_t * next_col = thiscol(term, thisrow(term));
-			if(next_col && next_col->value != K_NEWLINE)
+			/* Move cursor to the right */
+			node_t * this_row = thisrow(term);
+			node_t * next_col = thiscol(term, this_row);
+			if(next_col && next_col->value != K_NEWLINE) {
 				HMOVE(RIGHT);
-			else {
+			} else {
 				/* Scroll down here */
-				node_t * nextline = thisrow(term)->next;
-				if(term->cur.y > term->size.y - (BOTTOM_MARGIN + 2) && nextline && list_size(nextline->value)) {
-					render_y_off += DELTA_BOTTOM_SCROLL;
+				node_t * nextline = this_row->next;
+				if(NEEDS_SCROLL_DOWN()) {
+					cursor_scroll_down();
 					GOTOFIRST();
 				} else {
+					/* Overflow cursor to the next line */
 					OVERFLOW();
 				}
 			}
@@ -71,32 +80,36 @@ void handle_escape(term_t * term, int escode) {
 		break;
 	}
 	case K_LEFT: {
-		if(!term->cur.x) {
+		if(IS_CURSOR_ON_START()) {
 			/* be REALLY careful with this macro */
-			VSCROLL()
+			VSCROLL() /* Scroll up */
+				/* Find the very last column on the same line */
 				while(1)
 					if(!thiscol(term, thisrow(term)))
-						break;
+						break; /* Found it */
 					else
-						HMOVE(RIGHT);
+						HMOVE(RIGHT); /* Keep looking */
 			} else {
+				/* Underflow cursor to the previous line */
 				UNDERFLOW();
 			}
 		}
 
 		/* be REALLY careful with this macro */
-		HSCROLL()
+		HSCROLL() /* Scroll left (this only runs if necessary, else it runs the 'else') */
 			/* Put cursor on the last character on the screen (but not on buffer) */
 			HSCROLL_FINDLAST_ON_VIEW();
 		} else { /* there's an hidden if inside hscroll, tricky one! */
+			/* Move cursor to the left */
 			HMOVE(LEFT);
 		}
 		break;
 	}
 	}
 
+	/* Update position only if cursor changes are valid */
 	update_cursor_visual(term, old_cur);
-	is_esc = 0;
+	is_esc = 0; /* The escape function has been handled */
 }
 
 void handle_normal(term_t * term, int c) {
@@ -105,15 +118,18 @@ void handle_normal(term_t * term, int c) {
 	switch(c) {
 	case K_NEWLINE:
 		if(term->cur.y > term->size.y - (BOTTOM_MARGIN + 2))
-			render_y_off+=DELTA_BOTTOM_SCROLL;
+			cursor_scroll_down(); /* Scroll down */
 		else
-			VMOVE(DOWN);
+			VMOVE(DOWN); /* Move the cursor down */
 		GOTOFIRST();
+		/* Might have to scroll to the left, at least to the last character of the next line */
+
 		break;
 	case K_BACKSPACE:
-		if(!term->cur.x) {
+		if(IS_CURSOR_ON_START()) {
 			/* be REALLY careful with this macro */
-			VSCROLL()
+			VSCROLL() /* Scroll up */
+				/* Backspace is kinda special. It scrolls down some extra lines because it's deleting content */
 				int DELTA_TOP_OFF_PLUS = 10;
 				render_y_off -= DELTA_TOP_OFF_PLUS;
 				if(render_y_off<0) render_y_off = 0;
@@ -126,40 +142,53 @@ void handle_normal(term_t * term, int c) {
 					}
 					VMOVE(DOWN);
 				}
-
-			}else {
+			} else {
+				/* Underflow cursor to the previous line */
 				UNDERFLOW();
 			}
 		}
 		/* be REALLY careful with this macro */
-		HSCROLL()
+		HSCROLL() /* Scroll left */
 			/* Put cursor on the last character on the screen (but not on buffer) */
 			HSCROLL_FINDLAST_ON_VIEW();
 		} else { /* there's a hidden if inside hscroll, tricky one! */
+			/* Move cursor to the left */
 			HMOVE(LEFT);
 		}
 		break;
 	case K_DEL: /* The cursor shall not move */ break;
 	default:
 		/* Normal character */
-		if(term->cur.x > term->size.x - RIGHT_MARGIN) {
-			render_x_off+=DELTA_RIGHT_SCROLL;
-			HMOVEN(LEFT, DELTA_RIGHT_SCROLL - 1);
-		} else {
-			HMOVE(RIGHT);
-		}
+		if(NEEDS_SCROLL_RIGHT())
+			cursor_scroll_right(term); /* Scroll right */
+		else
+			HMOVE(RIGHT); /* Move cursor to the right */
 		break;
 	}
 
+	/* Push character entered into the text editor buffer */
 	push_buff(old_cur, c);
+	/* Update position only if new cursor changes are valid */
 	update_cursor_visual(term, old_cur);
 }
 
+int consume_escape(int ch) {
+	if(ch == K_ESC){
+		is_esc = 1;
+		getch(); /* consume '[' */
+		return getch();
+	} else {
+		return ch;
+	}
+}
+
 void key_handle(term_t * term) {
+	/* Read the keyboard without blocking the program */
 	int c;
 	if((c = term->read()) == TERM_NO_AVAIL) /* No key on the keyboard was hit */
 		return;
 
+	/* Detect if a special key (like the arrows) has been entered */
 	int c_cpy = consume_escape(c);
 	if(is_esc)
 		handle_escape(term, c_cpy);
