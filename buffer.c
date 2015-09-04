@@ -96,8 +96,16 @@ void push_buff(Point cursorPos, int c) {
 	/* push char into micro_buff on a certain location */
 	int row_y = render_y_off + (cursorPos.y - TOP_MARGIN);
 	int row_x = render_x_off + cursorPos.x;
+
 	node_t * rownode = list_get(micro_buff, row_y);
-	node_t * node_char = list_get(rownode->value, row_x);
+	node_t * node_char;
+	if(rownode) {
+		node_char = list_get(rownode->value, row_x);
+	} else {
+		/* Oops, we might have scrolled down and found a hole there. Fix it with this */
+		rownode = list_get(micro_buff, row_y - 1);
+		node_char = list_get(rownode->value, row_x);
+	}
 
 	if(c == K_BACKSPACE || c == K_DEL) {
 		/* A special character has been pushed into the buffer.
@@ -115,10 +123,11 @@ void push_buff(Point cursorPos, int c) {
 	if(c == K_NEWLINE || !rownode->next) {
 		/* Check if we want to insert or create a new line */
 		list_t * newline = create_line(row_y + 1);
-		list_t * thisline = rownode->value;
 
 		/* Move everything after \n to the next line */
 		if(c == K_NEWLINE) { /* Don't want to move stuff nore remove if we found a null line! */
+			list_t * thisline = rownode->value;
+
 			forl(int i = list_index_of(thisline, K_NEWLINE) + 1, 1, 1, thisline)
 				list_insert(newline, node->value);
 

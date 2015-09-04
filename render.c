@@ -41,7 +41,7 @@ void draw_top_margin(term_t * term) {
 	char str[] = NEW_FILE;
 	GOTO((term->size.x / 2) - (strlen(str) / 2),0); addstr(str);
 
-	//attroff(TOP_MARGIN_ATTR);
+	attroff(TOP_MARGIN_ATTR);
 	GOTO(oldp.x, oldp.y);
 }
 

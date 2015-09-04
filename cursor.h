@@ -33,21 +33,26 @@ Point old;
 							if(is_loc_void(term->cur)) \
 								term->cur.x = 0; \
 						}}
+
 #define UNDERFLOW() {int y_off = render_y_off + (term->cur.y - TOP_MARGIN); \
 					 if(!term->cur.x && y_off) { \
 							node_t * prevrow = list_get(micro_buff, y_off - 1); \
 							term->cur.y--; \
 							term->cur.x = list_index_of_node(prevrow->value, list_find(prevrow->value, K_NEWLINE)) + 1; \
 						}}
+
 #define OVERFLOW(row) 	{int y_off = render_y_off + (term->cur.y - TOP_MARGIN); node_t * nextrow = list_get(micro_buff, y_off + 1); \
 						if(nextrow) { \
 							term->cur.y++; \
 							term->cur.x = 0; \
 						}}
+
 #define HSCROLL() if(term->cur.x < LEFT_MARGIN && render_x_off!=0) { render_x_off-=DELTA_RIGHT_SCROLL;
+
 #define HSCROLL_FINDLAST_ON_VIEW() for(int i=term->cur.x;i<term->size.x && !is_loc_void(term->cur);i++) \
 										HMOVE(RIGHT); \
 									HMOVEN(LEFT, 1);
+
 #define VSCROLL() if(term->cur.y < TOP_MARGIN + 1 && render_y_off) { render_y_off-=DELTA_TOP_SCROLL; if(render_y_off<0) render_y_off = 0;
 
 #endif /* CURSOR_H_ */

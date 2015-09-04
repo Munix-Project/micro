@@ -38,7 +38,9 @@ void handle_escape(term_t * term, int escode) {
 		}
 		break;
 	case K_DOWN: {
-		if(term->cur.y > term->size.y - (BOTTOM_MARGIN + 2) && !is_loc_void(term->cur)) {
+		/* Prevent the cursor from scrolling out of the "grid" */
+		node_t * nextline = thisrow(term)->next;
+		if(term->cur.y > term->size.y - (BOTTOM_MARGIN + 2) && nextline && list_size(nextline->value)) {
 			render_y_off += DELTA_BOTTOM_SCROLL;
 		} else {
 			VMOVE(DOWN);
@@ -55,14 +57,32 @@ void handle_escape(term_t * term, int escode) {
 			node_t * next_col = thiscol(term, thisrow(term));
 			if(next_col && next_col->value != K_NEWLINE)
 				HMOVE(RIGHT);
-			else
-				OVERFLOW();
+			else {
+				/* Scroll down here */
+				node_t * nextline = thisrow(term)->next;
+				if(term->cur.y > term->size.y - (BOTTOM_MARGIN + 2) && nextline && list_size(nextline->value)) {
+					render_y_off += DELTA_BOTTOM_SCROLL;
+					GOTOFIRST();
+				} else {
+					OVERFLOW();
+				}
+			}
 		}
 		break;
 	}
 	case K_LEFT: {
-		if(!term->cur.x)
-			UNDERFLOW();
+		if(!term->cur.x) {
+			/* be REALLY careful with this macro */
+			VSCROLL()
+				while(1)
+					if(!thiscol(term, thisrow(term)))
+						break;
+					else
+						HMOVE(RIGHT);
+			} else {
+				UNDERFLOW();
+			}
+		}
 
 		/* be REALLY careful with this macro */
 		HSCROLL()
@@ -89,13 +109,27 @@ void handle_normal(term_t * term, int c) {
 		else
 			VMOVE(DOWN);
 		GOTOFIRST();
-
 		break;
 	case K_BACKSPACE:
 		if(!term->cur.x) {
 			/* be REALLY careful with this macro */
-			VSCROLL()}
-			UNDERFLOW();
+			VSCROLL()
+				int DELTA_TOP_OFF_PLUS = 10;
+				render_y_off -= DELTA_TOP_OFF_PLUS;
+				if(render_y_off<0) render_y_off = 0;
+
+				GOTOFIRST();
+				for(int i=0;i<DELTA_TOP_OFF_PLUS;i++) {
+					if(!thisrow(term)->next){
+						VMOVE(UP);
+						break;
+					}
+					VMOVE(DOWN);
+				}
+
+			}else {
+				UNDERFLOW();
+			}
 		}
 		/* be REALLY careful with this macro */
 		HSCROLL()
