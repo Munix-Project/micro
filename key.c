@@ -15,6 +15,28 @@
 #define NEEDS_SCROLL_DOWN() term->cur.y > term->size.y - (BOTTOM_MARGIN + 2) && nextline && list_size(nextline->value)
 #define IS_CURSOR_ON_START() !term->cur.x
 
+#define FALLBACK_START 1
+#define FALLBACK_LAST  2
+#define FALLFORW 3
+
+uint8_t fallback = 0;
+
+void fall_back_forward(term_t * term) {
+	/* Fall back the cursor from a scrolled position. This might also fall "forward", not just back.
+	 * This needs to be done here after pushing the buffer
+	 * because we're changing the render offsets and we can't change
+	 * them BEFORE we push the character into the buffer.
+	 * If we did indeed push them, the index on the buffer
+	 * would be totally wrong and all kinds of problems would show up. */
+	switch(fallback) {
+	case FALLBACK_START:
+		while(render_x_off) cursor_scroll_left(term);
+		break;
+	case FALLBACK_LAST :  break;
+	case FALLFORW: break;
+	}
+}
+
 uint8_t is_esc = 0;
 
 void cursor_scroll_right(term_t * term) {
@@ -28,7 +50,15 @@ void cursor_scroll_down() {
 	render_y_off+=DELTA_BOTTOM_SCROLL;
 }
 
-/* XXX NOTE: Scroll left and up are done with HSCROLL and VSCROLL */
+void cursor_scroll_left(term_t * term) {
+	render_x_off-=DELTA_RIGHT_SCROLL;
+}
+
+void cursor_scroll_up() {
+	render_y_off-=DELTA_TOP_SCROLL;
+	if(render_y_off < 0)
+		render_y_off = 0;
+}
 
 void handle_escape(term_t * term, int escode) {
 	Point old_cur = term->cur;
@@ -52,6 +82,7 @@ void handle_escape(term_t * term, int escode) {
 			/* Move cursor down */
 			VMOVE(DOWN);
 			GOTOLAST();
+			fallback = FALLBACK_LAST;
 		}
 		}
 		break;
@@ -109,6 +140,7 @@ void handle_escape(term_t * term, int escode) {
 
 	/* Update position only if cursor changes are valid */
 	update_cursor_visual(term, old_cur);
+	fall_back_forward(term);
 	is_esc = 0; /* The escape function has been handled */
 }
 
@@ -122,8 +154,8 @@ void handle_normal(term_t * term, int c) {
 		else
 			VMOVE(DOWN); /* Move the cursor down */
 		GOTOFIRST();
-		/* Might have to scroll to the left, at least to the last character of the next line */
-
+		/* Fall back to the start of the document */
+		fallback = FALLBACK_START;
 		break;
 	case K_BACKSPACE:
 		if(IS_CURSOR_ON_START()) {
@@ -168,6 +200,7 @@ void handle_normal(term_t * term, int c) {
 
 	/* Push character entered into the text editor buffer */
 	push_buff(old_cur, c);
+	fall_back_forward(term);
 	/* Update position only if new cursor changes are valid */
 	update_cursor_visual(term, old_cur);
 }

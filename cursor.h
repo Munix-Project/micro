@@ -44,12 +44,12 @@ Point old;
 							term->cur.x = 0; \
 						}}
 
-#define HSCROLL() if(term->cur.x < LEFT_MARGIN && render_x_off!=0) { render_x_off-=DELTA_RIGHT_SCROLL;
+#define HSCROLL() if(term->cur.x < LEFT_MARGIN && render_x_off!=0) { cursor_scroll_left(term);
 
 #define HSCROLL_FINDLAST_ON_VIEW() for(int i=term->cur.x;i<term->size.x && !is_loc_void(term->cur);i++) \
 										HMOVE(RIGHT); \
 									HMOVEN(LEFT, 1);
 
-#define VSCROLL() if(term->cur.y < TOP_MARGIN + 1 && render_y_off) { render_y_off-=DELTA_TOP_SCROLL; if(render_y_off<0) render_y_off = 0;
+#define VSCROLL() if(term->cur.y < TOP_MARGIN + 1 && render_y_off) { cursor_scroll_up();
 
 #endif /* CURSOR_H_ */
