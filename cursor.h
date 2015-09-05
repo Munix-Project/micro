@@ -9,6 +9,7 @@
 #define CURSOR_H_
 
 /******* Cursor mechanisms *******/
+/* WARNING: they may be difficult to understand */
 
 #define IGNORE -1
 #define UP 0
@@ -32,12 +33,18 @@ Point old;
 						if(is_loc_void(term->cur)) \
 							term->cur.x = 0; \
 						}}
+#define GOTOLAST_NONVOID() 	while(1) \
+								if(!thiscol(term, thisrow(term))) \
+									break;\
+								else \
+									HMOVE(RIGHT);
 
-#define UNDERFLOW() {if(!term->cur.x && render_y_off + (term->cur.y - TOP_MARGIN)) { \
+#define UNDERFLOW() uint8_t under = 0; if(!term->cur.x && render_y_off + (term->cur.y - TOP_MARGIN)) { \
 							node_t * prevrow = thisrow(term)->prev; \
 							term->cur.y--; \
 							term->cur.x = list_index_of_node(prevrow->value, list_find(prevrow->value, K_NEWLINE)) + 1; \
-						}}
+							under=1; \
+							}
 
 #define OVERFLOW(row) 	{if(thisrow(term)->next) { \
 							term->cur.y++; \
@@ -51,5 +58,10 @@ Point old;
 									HMOVEN(LEFT, 1);
 
 #define VSCROLL() if(term->cur.y < TOP_MARGIN + 1 && render_y_off) { cursor_scroll_up();
+
+#define FALL_FORWARD() int line_size = list_size(thisrow(term)->value); \
+					   for(int i=0;i < (int)(line_size / term->size.x) + 1;i++) \
+						   cursor_scroll_right(term); \
+					    fallback = FALLFORW;
 
 #endif /* CURSOR_H_ */

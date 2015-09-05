@@ -21,22 +21,6 @@
 
 uint8_t fallback = 0;
 
-void fall_back_forward(term_t * term) {
-	/* Fall back the cursor from a scrolled position. This might also fall "forward", not just back.
-	 * This needs to be done here after pushing the buffer
-	 * because we're changing the render offsets and we can't change
-	 * them BEFORE we push the character into the buffer.
-	 * If we did indeed push them, the index on the buffer
-	 * would be totally wrong and all kinds of problems would show up. */
-	switch(fallback) {
-	case FALLBACK_START:
-		while(render_x_off) cursor_scroll_left(term);
-		break;
-	case FALLBACK_LAST :  break;
-	case FALLFORW: break;
-	}
-}
-
 uint8_t is_esc = 0;
 
 void cursor_scroll_right(term_t * term) {
@@ -60,6 +44,43 @@ void cursor_scroll_up() {
 		render_y_off = 0;
 }
 
+void fall_back_forward(term_t * term) {
+	/* Fall back the cursor from a scrolled position. This might also fall "forward", not just back.
+	 * This needs to be done here after pushing the buffer
+	 * because we're changing the render offsets and we can't change
+	 * them BEFORE we push the character into the buffer.
+	 * If we did indeed push them, the index on the buffer
+	 * would be totally wrong and all kinds of problems would show up. */
+	switch(fallback) {
+	case FALLBACK_START:
+		while(render_x_off)
+			cursor_scroll_left(term);
+		break;
+	case FALLBACK_LAST :
+		if(!thisrow(term)) break; /* This row doesn't exist */
+		if(is_loc_void(term->cur)) {
+			/* Scroll left till something is found */
+			while(is_loc_void(term->cur) && render_x_off)
+				cursor_scroll_left(term);
+			/* Find the very last column on the same line */
+			GOTOLAST();
+			HSCROLL_FINDLAST_ON_VIEW();
+		} /* else: Already on a good place */
+		break;
+	case FALLFORW: {
+		while(NEEDS_SCROLL_RIGHT()) {
+			cursor_scroll_right(term);
+			Point loc = term->cur;
+			loc.x += render_y_off;
+			if(is_loc_void(loc)) break;
+		}
+		HSCROLL_FINDLAST_ON_VIEW();
+		break;
+	}
+	}
+	fallback = 0;
+}
+
 void handle_escape(term_t * term, int escode) {
 	Point old_cur = term->cur;
 
@@ -70,7 +91,7 @@ void handle_escape(term_t * term, int escode) {
 		else { /* there's a hidden if inside hscroll, tricky one! */
 			/* Move cursor up */
 			VMOVE(UP);
-			GOTOLAST();
+			fallback = FALLBACK_LAST;
 		}
 		break;
 	case K_DOWN: {
@@ -81,7 +102,6 @@ void handle_escape(term_t * term, int escode) {
 		} else {
 			/* Move cursor down */
 			VMOVE(DOWN);
-			GOTOLAST();
 			fallback = FALLBACK_LAST;
 		}
 		}
@@ -105,6 +125,9 @@ void handle_escape(term_t * term, int escode) {
 				} else {
 					/* Overflow cursor to the next line */
 					OVERFLOW();
+					/* Fall back to the start of the document */
+					if(thisrow(term)->next)
+						fallback = FALLBACK_START;
 				}
 			}
 		}
@@ -114,15 +137,12 @@ void handle_escape(term_t * term, int escode) {
 		if(IS_CURSOR_ON_START()) {
 			/* be REALLY careful with this macro */
 			VSCROLL() /* Scroll up */
-				/* Find the very last column on the same line */
-				while(1)
-					if(!thiscol(term, thisrow(term)))
-						break; /* Found it */
-					else
-						HMOVE(RIGHT); /* Keep looking */
+				FALL_FORWARD(); /* Finds the very very last character on the current line and scrolls to it */
 			} else {
 				/* Underflow cursor to the previous line */
 				UNDERFLOW();
+				if(under) /* Underflow happened */
+					fallback = FALLFORW; /* Fall forward to the end of the line */
 			}
 		}
 
@@ -138,9 +158,9 @@ void handle_escape(term_t * term, int escode) {
 	}
 	}
 
+	fall_back_forward(term);
 	/* Update position only if cursor changes are valid */
 	update_cursor_visual(term, old_cur);
-	fall_back_forward(term);
 	is_esc = 0; /* The escape function has been handled */
 }
 
@@ -174,9 +194,13 @@ void handle_normal(term_t * term, int c) {
 					}
 					VMOVE(DOWN);
 				}
+
+				FALL_FORWARD(); /* Finds the very very last character on the current line and scrolls to it */
 			} else {
 				/* Underflow cursor to the previous line */
 				UNDERFLOW();
+				if(under) /* Underflow happened */
+					fallback = FALLFORW;
 			}
 		}
 		/* be REALLY careful with this macro */

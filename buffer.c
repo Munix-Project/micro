@@ -46,8 +46,25 @@ node_t * thisrow(term_t * term) {
 	return list_get(micro_buff, render_y_off + (term->cur.y - TOP_MARGIN));
 }
 
+node_t * nextrow(term_t * term) {
+	return thisrow(term)->next;
+}
+
+node_t * prevrow(term_t * term) {
+	if(term->cur.y - TOP_MARGIN < 0) return NULL; /* Cursor is on 0th row. Nothing else up there */
+	return thisrow(term)->prev;
+}
+
 node_t * thiscol(term_t * term, node_t * row) {
 	return list_get(row->value, render_x_off + term->cur.x);
+}
+
+node_t * nextcol(term_t * term, node_t * row) {
+	return thiscol(term, row)->next;
+}
+
+node_t * prevcol(term_t * term, node_t * row) {
+	return thiscol(term, row)->prev;
 }
 
 void remove_from_pos_until_empty(list_t* line, int index) {
