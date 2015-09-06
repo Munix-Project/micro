@@ -42,7 +42,7 @@ void update_cursor(uint8_t movedown, uint8_t moveright) {
 
 	if(moveright == 1 && thisterm->cur.x < thisterm->size.x - 1)
 		thisterm->cur.x++;
-	else if(!moveright && thisterm->cur.x > 0)
+	else if(!moveright && thisterm->cur.x > LEFT_MARGIN)
 		thisterm->cur.x--;
 }
 
@@ -55,9 +55,9 @@ Point cursor_goto(int x, int y) {
 	old.x = thisterm->cur.x;
 	old.y = thisterm->cur.y;
 
-	if(x >= thisterm->size.x - 1)
+	if(x >= thisterm->size.x)
 		thisterm->cur.x = x = thisterm->size.x - 2;
-	if(y >= thisterm->size.y - 1)
+	if(y >= thisterm->size.y)
 		thisterm->cur.y = y = thisterm->size.y - 2;
 
 	move(y, x);
@@ -95,7 +95,7 @@ term_t * init_term() {
 	timeout(0);
 
 	thisterm = malloc(sizeof(term_t));
-	thisterm->cur.x = 0;
+	thisterm->cur.x = LEFT_MARGIN;
 	thisterm->cur.y = TOP_MARGIN;
 	update_all();
 

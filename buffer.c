@@ -56,7 +56,7 @@ node_t * prevrow(term_t * term) {
 }
 
 node_t * thiscol(term_t * term, node_t * row) {
-	return list_get(row->value, render_x_off + term->cur.x);
+	return list_get(row->value, render_x_off + (term->cur.x - LEFT_MARGIN));
 }
 
 node_t * nextcol(term_t * term, node_t * row) {
@@ -74,10 +74,12 @@ void remove_from_pos_until_empty(list_t* line, int index) {
 	}
 }
 
-void func_buff(Point cursorPos, node_t * row, node_t * col, int c) {
+uint8_t func_buff(Point cursorPos, node_t * row, node_t * col, int c) {
+	/* return 1 and the character 'c' won't be pushed into the buffer.
+	 * Else, it will perform the function AND push into the buffer */
 	switch(c) {
 	case K_BACKSPACE:
-		if(!cursorPos.x && row->prev) {
+		if(!(cursorPos.x - LEFT_MARGIN) && row->prev) {
 			/* Copy this line, append it to the previous one and delete this line */
 			node_t * prev_newline = list_find(row->prev->value, K_NEWLINE);
 			forl(int i=0, 1, 1, (list_t*)row->value)
@@ -86,33 +88,36 @@ void func_buff(Point cursorPos, node_t * row, node_t * col, int c) {
 			remove_from_pos_until_empty(row->value, 0);
 			list_remove(micro_buff, render_y_off +  (cursorPos.y - TOP_MARGIN));
 		} else {
-			list_remove(row->value, render_x_off + cursorPos.x - 1);
+			list_remove(row->value, render_x_off + (cursorPos.x - LEFT_MARGIN) - 1);
 		}
+		return 1;
 		break;
 	case K_DEL:
 		/* Nothing else to delete, please don't corrupt my memory */
-		if(!row->next && col && col->value == K_NEWLINE) break;
+		if(!row->next && col && col->value == K_NEWLINE) return 1;
 
 		if(col->value == K_NEWLINE) {
 			/* Remove new line, bring the next line to this one and get rid of the next line */
 			forl(int i=0, 1, 1, (list_t*)row->next->value)
 				list_insert_before(row->value, col, node->value);
 			remove_from_pos_until_empty(row->next->value, 0);
-			list_remove(micro_buff, render_y_off + ((cursorPos.y + 1) - TOP_MARGIN));
+			list_remove(micro_buff, list_index_of(micro_buff, row->next->value));
 		} else if(list_get_last(row->value) == col){
 			/* Don't delete \r if that's the only thing that is on this line (this means there's no \n to delete) */
 		} else {
 			/* Delete regular character */
-			list_remove(row->value, render_x_off + cursorPos.x);
+			list_remove(row->value, list_index_of(row->value, col->value));
 		}
+		return 1;
 		break;
 	}
+	return 0;
 }
 
 void push_buff(Point cursorPos, int c) {
 	/* push char into micro_buff on a certain location */
 	int row_y = render_y_off + (cursorPos.y - TOP_MARGIN);
-	int row_x = render_x_off + cursorPos.x;
+	int row_x = render_x_off + (cursorPos.x - LEFT_MARGIN);
 
 	node_t * rownode = list_get(micro_buff, row_y);
 	node_t * node_char;
@@ -128,8 +133,8 @@ void push_buff(Point cursorPos, int c) {
 		/* A special character has been pushed into the buffer.
 		 * Normally, this character should not be actually pushed.
 		 * Instead, it affects the contents of the buffer. */
-		func_buff(cursorPos, rownode, node_char, c);
-		return;
+		if(func_buff(cursorPos, rownode, node_char, c))
+			return;
 	}
 
 	if(node_char)
@@ -137,20 +142,18 @@ void push_buff(Point cursorPos, int c) {
 	else
 		list_insert_before(rownode->value, list_find(rownode->value, K_NEWLINE), (void*)c);
 
-	if(c == K_NEWLINE || !rownode->next) {
+	if(c == K_NEWLINE) {
 		/* Check if we want to insert or create a new line */
 		list_t * newline = create_line(row_y + 1);
 
 		/* Move everything after \n to the next line */
-		if(c == K_NEWLINE) { /* Don't want to move stuff nore remove if we found a null line! */
-			list_t * thisline = rownode->value;
+		list_t * thisline = rownode->value;
 
-			forl(int i = list_index_of(thisline, K_NEWLINE) + 1, 1, 1, thisline)
-				list_insert(newline, node->value);
+		forl(int i = list_index_of(thisline, K_NEWLINE) + 1, 1, 1, thisline)
+			list_insert(newline, node->value);
 
-			/* Remove old characters from previous line */
-			int newpos = list_index_of(thisline, K_NEWLINE) + 1;
-			remove_from_pos_until_empty(thisline, newpos);
-		}
+		/* Remove old characters from previous line */
+		int newpos = list_index_of(thisline, K_NEWLINE) + 1;
+		remove_from_pos_until_empty(thisline, newpos);
 	}
 }

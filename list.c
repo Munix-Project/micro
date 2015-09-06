@@ -256,16 +256,14 @@ node_t * list_get(list_t* list, int index) {
 
 node_t * list_get_last(list_t * list) {
 	node_t * i = NULL;
-	foreach(item, list) {
+	foreach(item, list)
 		i = item;
-	}
 	return i;
 }
 
 node_t * list_get_first(list_t * list) {
-	foreach(item, list) {
+	foreach(item, list)
 		return item;
-	}
 	return NULL;
 }
 

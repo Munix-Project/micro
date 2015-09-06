@@ -13,7 +13,7 @@
 
 #define NEEDS_SCROLL_RIGHT() term->cur.x > term->size.x - RIGHT_MARGIN
 #define NEEDS_SCROLL_DOWN() term->cur.y > term->size.y - (BOTTOM_MARGIN + 2) && nextline && list_size(nextline->value)
-#define IS_CURSOR_ON_START() !term->cur.x
+#define IS_CURSOR_ON_START() !(term->cur.x - LEFT_MARGIN)
 
 #define FALLBACK_START 1
 #define FALLBACK_LAST  2
@@ -26,6 +26,7 @@ uint8_t is_esc = 0;
 void cursor_scroll_right(term_t * term) {
 	/* Scroll right */
 	render_x_off+=DELTA_RIGHT_SCROLL;
+
 	HMOVEN(LEFT, DELTA_RIGHT_SCROLL);
 	HMOVE(RIGHT); /* damn cursor won't go to its place */
 }
@@ -35,7 +36,9 @@ void cursor_scroll_down() {
 }
 
 void cursor_scroll_left(term_t * term) {
-	render_x_off-=DELTA_RIGHT_SCROLL;
+	render_x_off-=DELTA_LEFT_SCROLL;
+	if(render_x_off < 0)
+		render_x_off = 0;
 }
 
 void cursor_scroll_up() {
@@ -71,7 +74,7 @@ void fall_back_forward(term_t * term) {
 		while(NEEDS_SCROLL_RIGHT()) {
 			cursor_scroll_right(term);
 			Point loc = term->cur;
-			loc.x += render_y_off;
+			loc.x = render_x_off + (loc.x - LEFT_MARGIN);
 			if(is_loc_void(loc)) break;
 		}
 		HSCROLL_FINDLAST_ON_VIEW();
@@ -108,8 +111,9 @@ void handle_escape(term_t * term, int escode) {
 		break;
 	case K_RIGHT: {
 		if(NEEDS_SCROLL_RIGHT()) {
-			/* Scroll right */
-			cursor_scroll_right(term);
+			/* Check if there is anything else forward that we can scroll into */
+			if(nextcol(term, thisrow(term)))
+				cursor_scroll_right(term); /* Scroll right */
 		} else {
 			/* Move cursor to the right */
 			node_t * this_row = thisrow(term);
@@ -188,10 +192,8 @@ void handle_normal(term_t * term, int c) {
 
 				GOTOFIRST();
 				for(int i=0;i<DELTA_TOP_OFF_PLUS;i++) {
-					if(!thisrow(term)->next){
-						VMOVE(UP);
+					if(!thisrow(term)->next)
 						break;
-					}
 					VMOVE(DOWN);
 				}
 
