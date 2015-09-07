@@ -5,76 +5,74 @@
  *      Author: miguel
  */
 
-#include "buffer.h"
-#include "key.h"
-#include "window.h"
 #include "render.h"
+#include "list.h"
+#include "key.h"
 #include <stdlib.h>
 #include <stdio.h>
 
-list_t * micro_buff;
-
-list_t * create_line(int y) {
+list_t * create_line(list_t * buff, int y) {
 	list_t * l = list_create();
 
-	if(y > list_size(micro_buff)) {
+	if(y > list_size(buff)) {
 		/* Create new line */
-		list_insert(micro_buff, l);
+		list_insert(buff, l);
 	} else {
-		node_t * nextline = list_get(micro_buff, y);
-		list_insert_before(micro_buff, nextline, l);
+		node_t * nextline = list_get(buff, y);
+		list_insert_before(buff, nextline, l);
 	}
 	return l;
 }
 
-void init_buff() {
-	micro_buff = list_create();
-	list_t * firstline = create_line(0);
+list_t * init_buff() {
+	list_t * new_buff = list_create();
+	list_t * firstline = create_line(new_buff, 0);
 	list_insert(firstline, K_NEWLINE);
+	return new_buff;
 }
 
-void clean_buff() {
-	foreach(line, micro_buff) {
+void clean_buff(list_t * buff) {
+	foreach(line, buff) {
 		list_free(line->value);
 		free(line->value);
 	}
-	list_free(micro_buff);
-	free(micro_buff);
+	list_free(buff);
+	free(buff);
 }
 
-node_t * thisrow(term_t * term) {
-	return list_get(micro_buff, render_y_off + (term->cur.y - TOP_MARGIN));
+node_t * thisrow(file_t * file) {
+	return list_get(file->buff, file->rend->y_off + (file->term->cur.y - TOP_MARGIN));
 }
 
-node_t * nextrow(term_t * term) {
-	return thisrow(term)->next;
+node_t * nextrow(file_t * file) {
+	return thisrow(file)->next;
 }
 
-node_t * prevrow(term_t * term) {
-	if(term->cur.y - TOP_MARGIN < 0) return NULL; /* Cursor is on 0th row. Nothing else up there */
-	return thisrow(term)->prev;
+node_t * prevrow(file_t * file) {
+	if(file->term->cur.y - TOP_MARGIN < 0) return NULL; /* Cursor is on 0th row. Nothing else up there */
+	return thisrow(file)->prev;
 }
 
-node_t * thiscol(term_t * term, node_t * row) {
-	return list_get(row->value, render_x_off + (term->cur.x - LEFT_MARGIN));
+node_t * thiscol(file_t * file, node_t * row) {
+	return list_get(row->value, file->rend->x_off + (file->term->cur.x - LEFT_MARGIN));
 }
 
-node_t * nextcol(term_t * term, node_t * row) {
-	return thiscol(term, row)->next;
+node_t * nextcol(file_t * file, node_t * row) {
+	return thiscol(file, row)->next;
 }
 
-node_t * prevcol(term_t * term, node_t * row) {
-	return thiscol(term, row)->prev;
+node_t * prevcol(file_t * file, node_t * row) {
+	return thiscol(file, row)->prev;
 }
 
-void remove_from_pos_until_empty(list_t* line, int index) {
+void remove_from_pos_until_empty(list_t * line, int index) {
 	for(int i=0;;i++) {
 		if(!list_get(line,index)) break;
 		list_remove(line, index);
 	}
 }
 
-uint8_t func_buff(Point cursorPos, node_t * row, node_t * col, int c) {
+uint8_t func_buff(file_t * file, Point cursorPos, node_t * row, node_t * col, int c) {
 	/* return 1 and the character 'c' won't be pushed into the buffer.
 	 * Else, it will perform the function AND push into the buffer */
 	switch(c) {
@@ -86,9 +84,9 @@ uint8_t func_buff(Point cursorPos, node_t * row, node_t * col, int c) {
 				list_insert_before(row->prev->value, prev_newline, node->value);
 
 			remove_from_pos_until_empty(row->value, 0);
-			list_remove(micro_buff, render_y_off +  (cursorPos.y - TOP_MARGIN));
+			list_remove(file->buff, file->rend->y_off +  (cursorPos.y - TOP_MARGIN));
 		} else {
-			list_remove(row->value, render_x_off + (cursorPos.x - LEFT_MARGIN) - 1);
+			list_remove(row->value, file->rend->x_off + (cursorPos.x - LEFT_MARGIN) - 1);
 		}
 		return 1;
 		break;
@@ -101,7 +99,7 @@ uint8_t func_buff(Point cursorPos, node_t * row, node_t * col, int c) {
 			forl(int i=0, 1, 1, (list_t*)row->next->value)
 				list_insert_before(row->value, col, node->value);
 			remove_from_pos_until_empty(row->next->value, 0);
-			list_remove(micro_buff, list_index_of(micro_buff, row->next->value));
+			list_remove(file->buff, list_index_of(file->buff, row->next->value));
 		} else if(list_get_last(row->value) == col){
 			/* Don't delete \r if that's the only thing that is on this line (this means there's no \n to delete) */
 		} else {
@@ -114,18 +112,18 @@ uint8_t func_buff(Point cursorPos, node_t * row, node_t * col, int c) {
 	return 0;
 }
 
-void push_buff(Point cursorPos, int c) {
+void push_buff(file_t * file, Point cursorPos, int c) {
 	/* push char into micro_buff on a certain location */
-	int row_y = render_y_off + (cursorPos.y - TOP_MARGIN);
-	int row_x = render_x_off + (cursorPos.x - LEFT_MARGIN);
+	int row_y = file->rend->y_off + (cursorPos.y - TOP_MARGIN);
+	int row_x = file->rend->x_off + (cursorPos.x - LEFT_MARGIN);
 
-	node_t * rownode = list_get(micro_buff, row_y);
+	node_t * rownode = list_get(file->buff, row_y);
 	node_t * node_char;
 	if(rownode) {
 		node_char = list_get(rownode->value, row_x);
 	} else {
 		/* Oops, we might have scrolled down and found a hole there. Fix it with this */
-		rownode = list_get(micro_buff, row_y - 1);
+		rownode = list_get(file->buff, row_y - 1);
 		node_char = list_get(rownode->value, row_x);
 	}
 
@@ -133,7 +131,7 @@ void push_buff(Point cursorPos, int c) {
 		/* A special character has been pushed into the buffer.
 		 * Normally, this character should not be actually pushed.
 		 * Instead, it affects the contents of the buffer. */
-		if(func_buff(cursorPos, rownode, node_char, c))
+		if(func_buff(file, cursorPos, rownode, node_char, c))
 			return;
 	}
 
@@ -144,7 +142,7 @@ void push_buff(Point cursorPos, int c) {
 
 	if(c == K_NEWLINE) {
 		/* Check if we want to insert or create a new line */
-		list_t * newline = create_line(row_y + 1);
+		list_t * newline = create_line(file->buff, row_y + 1);
 
 		/* Move everything after \n to the next line */
 		list_t * thisline = rownode->value;

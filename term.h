@@ -9,7 +9,6 @@
 #define TERM_H_
 
 #include "defs.h"
-#include "list.h"
 #include <stdint.h>
 
 #define TERM_NO_AVAIL -1

@@ -7,23 +7,18 @@
  *  A text editor for the Helios Operating System
  */
 
-#include "term.h"
-#include "key.h"
+#include "micro_file.h"
 #include "render.h"
+#include "key.h"
 
-#include "list.h"
-#include <stdio.h>
 int main(int argc, char ** argv) {
-	term_t * term = init_term();
-	term->clr();
-	init_renderer();
+	file_t * file = create_file(".", "new-file");
 
-	while(1) {
-		key_handle(term);
-		render_all(term);
+	while(!file->term_status->quit_fl) {
+		key_handle(file);
+		render_all(file);
 	}
 
-	clean_term(term);
-	clean_renderer();
+	close_file(file);
 	return 0;
 }

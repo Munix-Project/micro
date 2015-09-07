@@ -10,58 +10,64 @@
 #include "key.h"
 #include "window.h"
 #include "defs.h"
+#include "micro_file.h"
 #include <stdio.h>
 #include <string.h>
-
-int render_x_off = 0;
-int render_y_off = 0;
+#include <curses.h>
+#include <stdlib.h>
 
 Point old;
-#define GOTO(x,y) old = term->go_to(x, y)
-#define RETCUR() term->go_to(old.x, old.y)
+#define GOTO(x,y) old = file->term->go_to(x, y)
+#define RETCUR() file->term->go_to(old.x, old.y)
 
 #define TOP_MARGIN_ATTR A_BOLD | A_REVERSE
 #define BOT_MARGIN_ATTR A_REVERSE
 #define LEF_MARGIN_ATTR A_REVERSE
 
-void init_renderer() {
-	init_buff();
+render_t * init_renderer() {
+	render_t * new_renderer = malloc(sizeof(render_t));
+	new_renderer->x_off = 0;
+	new_renderer->y_off = 0;
+
 	start_color();
 	init_pair(1, COLOR_WHITE, COLOR_BLACK);
 	init_pair(2, COLOR_WHITE, COLOR_BLACK);
 	attron(COLOR_PAIR(2));
+
+	return new_renderer;
 }
 
-void clean_renderer() {
-	clean_buff();
+void clean_renderer(render_t * renderer) {
+	free(renderer);
 }
 
-void draw_top_margin(term_t * term) {
+void draw_top_margin(file_t * file) {
 	attron(TOP_MARGIN_ATTR);
 
-	Point oldp = term->cur;
+	Point oldp = file->term->cur;
 	GOTO(0,0);
-	for(int i=0;i<term->size.x;i++)
+	for(int i=0;i<file->term->size.x;i++)
 		addch(' ');
 
 	GOTO(3,0); addstr(MICRO_NAME);
 	char str[] = NEW_FILE;
-	GOTO((term->size.x / 2) - (strlen(str) / 2),0); addstr(str);
+	GOTO((file->term->size.x / 2) - (strlen(str) / 2),0); addstr(str);
 
 	attroff(TOP_MARGIN_ATTR);
 	GOTO(oldp.x, oldp.y);
 }
 
-void draw_left_margin(term_t * term) {
-	Point oldp = term->cur;
+void draw_left_margin(file_t * file) {
+	Point oldp = file->term->cur;
 
-	for(int y=TOP_MARGIN; y < term->size.y - BOTTOM_MARGIN && (y - TOP_MARGIN) + render_y_off < list_size(micro_buff); y++) {
+	for(int y=TOP_MARGIN; y < file->term->size.y - BOTTOM_MARGIN && (y - TOP_MARGIN) + file->rend->y_off < list_size(file->buff); y++) {
+
 		char itos[LEFT_MARGIN];
-		sprintf(itos, "%d", (y - TOP_MARGIN + 1) + render_y_off);
+		sprintf(itos, "%d", (y - TOP_MARGIN + 1) + file->rend->y_off);
 		int left_space = strlen(itos);
 		int x_pos = LEFT_MARGIN - left_space - 1;
 
-		if(y == term->cur.y){
+		if(y == file->term->cur.y){
 			GOTO(0, y);
 			attron(COLOR_PAIR(1));
 			attron(LEF_MARGIN_ATTR);
@@ -100,32 +106,29 @@ void botmargin_showopt(char * opt, char * detail, uint8_t left_marg, int8_t righ
 	addch(' ');
 }
 
-void draw_bottom_margin(term_t * term) {
-	Point oldp = term->cur;
+void draw_bottom_margin(file_t * file) {
+	Point oldp = file->term->cur;
 
-	int y_margin = term->size.y - BOTTOM_MARGIN;
-
-	GOTO(0, y_margin);
-	addstr(" » ");
+	int y_margin = file->term->size.y - BOTTOM_MARGIN;
 
 	GOTO(0, y_margin + 1);
 	addstr("CTRL+");
-	botmargin_showopt("S", "Save", 0, 0);
-	botmargin_showopt("X", "Save As", 0, 0);
-	botmargin_showopt("Z", "Undo", 0, 1);
-	botmargin_showopt("D", "Exit", 0, 1);
-	botmargin_showopt("F", "Find", 0, 0);
-	botmargin_showopt("C", "Copy", 0, 0);
-	botmargin_showopt("B", "Cut", 0, 0);
-	botmargin_showopt("V", "Paste", 0, 0);
-	botmargin_showopt("G", "Goto", 0, -1);
-	botmargin_showopt("R", "Run", 4, 1);
-	botmargin_showopt("H", "Help", 0, 3);
-	botmargin_showopt("L", "NPage", 0, 0);
-	botmargin_showopt("P", "PPage", 0, 0);
-	botmargin_showopt("O", "Open", 0, 0);
-	botmargin_showopt("N", "New", 0, 1);
-	botmargin_showopt("M", "    More    ", 0, 0);
+	botmargin_showopt("S", "Save", 			0, 0);
+	botmargin_showopt("X", "Save As", 		0, 0);
+	botmargin_showopt("Z", "Undo", 			0, 1);
+	botmargin_showopt("D", "Exit", 			0, 1);
+	botmargin_showopt("F", "Find", 			0, 0);
+	botmargin_showopt("C", "Copy", 			0, 0);
+	botmargin_showopt("B", "Cut", 			0, 0);
+	botmargin_showopt("V", "Paste", 		0, 0);
+	botmargin_showopt("G", "Goto", 			0, -1);
+	botmargin_showopt("R", "Run", 			4, 1);
+	botmargin_showopt("H", "Help", 			0, 3);
+	botmargin_showopt("L", "NPage", 		0, 0);
+	botmargin_showopt("P", "PPage", 		0, 0);
+	botmargin_showopt("O", "Open", 			0, 0);
+	botmargin_showopt("N", "New", 			0, 1);
+	botmargin_showopt("E", "    More    ", 	0, 0);
 
 	/* Add these to the 'next' more: */
 	/*botmargin_showopt("K", "NFile", 0, 1);
@@ -133,36 +136,37 @@ void draw_bottom_margin(term_t * term) {
 
 	/* Draw x cursor position: */
 	char cur_str[5];
-	sprintf(cur_str, "C: %d", render_x_off + (term->cur.x - LEFT_MARGIN) + 1);
+	sprintf(cur_str, "C: %d", file->rend->x_off + (file->term->cur.x - LEFT_MARGIN) + 1);
 	addstr(cur_str);
 
 	GOTO(oldp.x, oldp.y);
 }
 
-void render_all(term_t * term) {
+void render_all(file_t * file) {
 	/* Render whole buffer from start to end
 	 * (respecting the window constraints and
 	 * the sizes for each line and column) */
-	if(render_x_off < 0) render_x_off = 0;
-	if(render_y_off < 0) render_y_off = 0;
 
-	term->clr();
+	if(file->rend->x_off < 0) file->rend->x_off = 0;
+	if(file->rend->y_off < 0) file->rend->y_off = 0;
 
-	draw_top_margin(term);
-	draw_left_margin(term);
-	draw_bottom_margin(term);
+	file->term->clr();
 
-	Point old_cur = term->cur;
+	draw_top_margin(file);
+	draw_left_margin(file);
+	draw_bottom_margin(file);
 
-	for(int y = TOP_MARGIN, by = render_y_off; y < term->size.y - BOTTOM_MARGIN; y++, by++) {
-		node_t * row_node = list_get(micro_buff, by);
+	Point old_cur = file->term->cur;
+
+	for(int y = TOP_MARGIN, by = file->rend->y_off; y < file->term->size.y - BOTTOM_MARGIN; y++, by++) {
+		node_t * row_node = list_get(file->buff, by);
 		if(!row_node) break;
 
 		list_t * row = row_node->value;
 
 		int x = LEFT_MARGIN;
-		int x_max =  term->size.x - RIGHT_MARGIN;
-		for(int bx = render_x_off; x <= x_max; x++, bx++) {
+		int x_max =  file->term->size.x - RIGHT_MARGIN;
+		for(int bx = file->rend->x_off; x <= x_max; x++, bx++) {
 			node_t * node_char = list_get(row, bx);
 			if(!node_char) break;
 
@@ -179,7 +183,7 @@ void render_all(term_t * term) {
 			}
 
 			/* Left border: */
-			if(render_x_off) {
+			if(file->rend->x_off) {
 				move(y, LEFT_MARGIN-1);
 				attron(A_BOLD | A_REVERSE);
 				addch('<');
@@ -194,12 +198,12 @@ void render_all(term_t * term) {
 	fflush(stdout);
 }
 
-uint8_t is_loc_void(Point loc) {
-	node_t * rownode = list_get(micro_buff, render_y_off + (loc.y - TOP_MARGIN));
+uint8_t is_loc_void(file_t * file, Point loc) {
+	node_t * rownode = list_get(file->buff, file->rend->y_off + (loc.y - TOP_MARGIN));
 	if(rownode) {
-		loc.x = render_x_off + (loc.x - LEFT_MARGIN);
+		loc.x = file->rend->x_off + (loc.x - LEFT_MARGIN);
 		node_t * row_loc = list_get(rownode->value, loc.x - 1 < 0 ? loc.x : loc.x - 1);
-		if(row_loc && row_loc->value!=K_NEWLINE)
+		if(row_loc && row_loc->value != K_NEWLINE)
 			return 0;
 		else
 			return 1;
@@ -208,20 +212,20 @@ uint8_t is_loc_void(Point loc) {
 	}
 }
 
-void update_cursor_visual(term_t * term, Point old_cursor) {
-	if(!is_loc_void(term->cur)) {
-		GOTO(term->cur.x, term->cur.y);
+void update_cursor_visual(file_t * file, Point old_cursor) {
+	if(!is_loc_void(file, file->term->cur)) {
+		GOTO(file->term->cur.x, file->term->cur.y);
 	} else {
 		/* Allow cursor to jump to next line. This is because the newline has just '\r' in it, and \r is considered a void cell */
-		node_t * thisr = thisrow(term);
+		node_t * thisr = thisrow(file);
 		node_t * thiscolumn = NULL;
 		if(thisr)
-			thiscolumn = thiscol(term, thisr);
+			thiscolumn = thiscol(file, thisr);
 		if(thiscolumn) {
 			if(thiscolumn->value != K_NEWLINE)
-				term->cur = old_cursor;
+				file->term->cur = old_cursor;
 		} else {
-			term->cur = old_cursor;
+			file->term->cur = old_cursor;
 		}
 	}
 }

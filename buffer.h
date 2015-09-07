@@ -10,18 +10,16 @@
 
 #include "defs.h"
 #include "list.h"
-#include "term.h"
+#include "micro_file.h"
 
-extern list_t * micro_buff;
-
-extern void init_buff();
-extern void clean_buff();
-extern void push_buff(Point cursorPos, int c);
-extern node_t * thisrow(term_t * term);
-extern node_t * nextrow(term_t * term);
-extern node_t * prevrow(term_t * term);
-extern node_t * thiscol(term_t * term, node_t * row);
-extern node_t * nextcol(term_t * term, node_t * row);
-extern node_t * prevcol(term_t * term, node_t * row);
+extern list_t * init_buff();
+extern void clean_buff(list_t * buff);
+extern void push_buff(file_t * file, Point cursorPos, int c);
+extern node_t * thisrow(file_t * file);
+extern node_t * nextrow(file_t * file);
+extern node_t * prevrow(file_t * file);
+extern node_t * thiscol(file_t * file, node_t * row);
+extern node_t * nextcol(file_t * file, node_t * row);
+extern node_t * prevcol(file_t * file, node_t * row);
 
 #endif /* BUFFER_H_ */

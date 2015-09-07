@@ -6,6 +6,7 @@
  */
 #include "term.h"
 #include "window.h"
+#include "function.h"
 #include <termios.h>
 #include <stdlib.h>
 #include <ncurses.h>

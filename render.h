@@ -8,16 +8,14 @@
 #ifndef RENDER_H_
 #define RENDER_H_
 
-#include "term.h"
-#include <curses.h>
+#include "defs.h"
+#include "micro_file.h"
+#include "window.h"
 
-extern void init_renderer();
-extern void clean_renderer();
-extern void render_all(term_t * term);
-extern uint8_t is_loc_void(Point loc);
-extern void update_cursor_visual(term_t * term, Point old_cursor);
-
-extern int render_x_off;
-extern int render_y_off;
+extern render_t * init_renderer();
+extern void clean_renderer(render_t * renderer);
+extern void render_all(file_t * file);
+extern uint8_t is_loc_void(file_t* file, Point loc);
+extern void update_cursor_visual(file_t * file, Point old_cursor);
 
 #endif /* RENDER_H_ */
