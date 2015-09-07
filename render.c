@@ -142,16 +142,7 @@ void draw_bottom_margin(file_t * file) {
 	GOTO(oldp.x, oldp.y);
 }
 
-void render_all(file_t * file) {
-	/* Render whole buffer from start to end
-	 * (respecting the window constraints and
-	 * the sizes for each line and column) */
-
-	if(file->rend->x_off < 0) file->rend->x_off = 0;
-	if(file->rend->y_off < 0) file->rend->y_off = 0;
-
-	file->term->clr();
-
+void render_editor(file_t * file) {
 	draw_top_margin(file);
 	draw_left_margin(file);
 	draw_bottom_margin(file);
@@ -194,6 +185,20 @@ void render_all(file_t * file) {
 	}
 
 	GOTO(old_cur.x, old_cur.y);
+}
+
+void render_all(file_t * file) {
+	/* Render whole buffer from start to end
+	 * (respecting the window constraints and
+	 * the sizes for each line and column) */
+
+	if(file->rend->x_off < 0) file->rend->x_off = 0;
+	if(file->rend->y_off < 0) file->rend->y_off = 0;
+
+	file->term->clr();
+
+	/* Switch between contexts. We might render the editor OR a menu which may belong to a function */
+	render_editor(file);
 
 	fflush(stdout);
 }

@@ -65,25 +65,34 @@ void fall_back_forward(file_t * file) {
 		while(file->rend->x_off)
 			cursor_scroll_left(file);
 		break;
-	case FALLBACK_LAST :
-		if(!thisrow(file)) break; /* This row doesn't exist */
+	case FALLBACK_LAST: {
+		node_t * row = thisrow(file);
+		if(!row) break; /* This row doesn't exist */
 		if(is_loc_void(file, file->term->cur)) {
-			/* Scroll left till something is found */
-			while(is_loc_void(file, file->term->cur) && file->rend->x_off)
-				cursor_scroll_left(file);
+			/* Check if we really need to scroll left */
+			int line_window_cover = (int)(list_size(row->value) / (file->term->size.x - LEFT_MARGIN));
+			if((int)(file->rend->x_off / DELTA_RIGHT_SCROLL) > line_window_cover) {
+				/* We need: */
+				/* Scroll left till something is found */
+				while(is_loc_void(file, file->term->cur) && file->rend->x_off)
+					cursor_scroll_left(file);
+			}
 			/* Find the very last column on the same line */
 			GOTOLAST();
 			HSCROLL_FINDLAST_ON_VIEW();
 		} /* else: Already on a good place */
 		break;
+	}
 	case FALLFORW: {
-		while(NEEDS_SCROLL_RIGHT()) {
-			cursor_scroll_right(file);
-			Point loc = file->term->cur;
-			loc.x = file->rend->x_off + (loc.x - LEFT_MARGIN);
-			if(is_loc_void(file, loc)) break;
+		if(NEEDS_SCROLL_RIGHT()) {
+			while(NEEDS_SCROLL_RIGHT()) {
+				cursor_scroll_right(file);
+				Point loc = file->term->cur;
+				loc.x = file->rend->x_off + (loc.x - LEFT_MARGIN);
+				if(is_loc_void(file, loc)) break;
+			}
+			HSCROLL_FINDLAST_ON_VIEW();
 		}
-		HSCROLL_FINDLAST_ON_VIEW();
 		break;
 	}
 	}
