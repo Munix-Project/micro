@@ -10,7 +10,6 @@
 
 #include "defs.h"
 #include "list.h"
-#include "micro_file.h"
 
 extern list_t * init_buff();
 extern void clean_buff(list_t * buff);

@@ -7,12 +7,13 @@
  *  A text editor for the Helios Operating System
  */
 
-#include "micro_file.h"
+#include "defs.h"
 #include "render.h"
 #include "key.h"
 
 int main(int argc, char ** argv) {
-	file_t * file = create_file(".", "new-file");
+	char * pwd = "."; /* TODO: Fetch the actual path */
+	file_t * file = create_file(pwd, NEW_FILE);
 
 	while(!file->term_status->quit_fl) {
 		key_handle(file);

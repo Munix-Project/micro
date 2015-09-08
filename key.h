@@ -8,7 +8,7 @@
 #ifndef KEY_H_
 #define KEY_H_
 
-#include "micro_file.h"
+#include "defs.h"
 #include "cursor.h"
 
 /* keys that don't belong to ncurses */

@@ -10,11 +10,15 @@
 #include "key.h"
 #include "window.h"
 #include "defs.h"
-#include "micro_file.h"
 #include <stdio.h>
 #include <string.h>
 #include <curses.h>
 #include <stdlib.h>
+
+int TOP_MARGIN 		= DEFAULT_TMARG;
+int LEFT_MARGIN 	= DEFAULT_LMARG;
+int RIGHT_MARGIN 	= DEFAULT_RMARG;
+int BOTTOM_MARGIN 	= DEFAULT_BMARG;
 
 Point old;
 #define GOTO(x,y) old = file->term->go_to(x, y)
@@ -23,6 +27,13 @@ Point old;
 #define TOP_MARGIN_ATTR A_BOLD | A_REVERSE
 #define BOT_MARGIN_ATTR A_REVERSE
 #define LEF_MARGIN_ATTR A_REVERSE
+
+void set_window_border_defaults() {
+	TOP_MARGIN 		= DEFAULT_TMARG;
+	LEFT_MARGIN 	= DEFAULT_LMARG;
+	RIGHT_MARGIN 	= DEFAULT_RMARG;
+	BOTTOM_MARGIN 	= DEFAULT_BMARG;
+}
 
 render_t * init_renderer() {
 	render_t * new_renderer = malloc(sizeof(render_t));
@@ -86,13 +97,13 @@ void draw_left_margin(file_t * file) {
 	GOTO(oldp.x, oldp.y);
 }
 
-void botmargin_showopt(char * opt, char * detail, uint8_t left_marg, int8_t right_pad) {
+void botmargin_showopt(char opt, char * detail, uint8_t left_marg, int8_t right_pad) {
 	if(left_marg)
 		for(int i=0;i<left_marg;i++)
 		addch(' ');
 	attron(A_BOLD);
 	attron(BOT_MARGIN_ATTR);
-	addstr(opt);
+	addch(opt);
 	attroff(A_BOLD);
 	addch(' ');
 	addstr(detail);
@@ -113,22 +124,22 @@ void draw_bottom_margin(file_t * file) {
 
 	GOTO(0, y_margin + 1);
 	addstr("CTRL+");
-	botmargin_showopt("S", "Save", 			0, 0);
-	botmargin_showopt("X", "Save As", 		0, 0);
-	botmargin_showopt("Z", "Undo", 			0, 1);
-	botmargin_showopt("D", "Exit", 			0, 1);
-	botmargin_showopt("F", "Find", 			0, 0);
-	botmargin_showopt("C", "Copy", 			0, 0);
-	botmargin_showopt("B", "Cut", 			0, 0);
-	botmargin_showopt("V", "Paste", 		0, 0);
-	botmargin_showopt("G", "Goto", 			0, -1);
-	botmargin_showopt("R", "Run", 			4, 1);
-	botmargin_showopt("H", "Help", 			0, 3);
-	botmargin_showopt("L", "NPage", 		0, 0);
-	botmargin_showopt("P", "PPage", 		0, 0);
-	botmargin_showopt("O", "Open", 			0, 0);
-	botmargin_showopt("N", "New", 			0, 1);
-	botmargin_showopt("E", "    More    ", 	0, 0);
+	botmargin_showopt(F_SAVE, 	  "Save", 	 	  0, 0);
+	botmargin_showopt(F_SAVEAS,   "Save As", 	  0, 0);
+	botmargin_showopt(F_UNDO, 	  "Undo", 	 	  0, 1);
+	botmargin_showopt(F_EXIT,	  "Exit", 	 	  0, 1);
+	botmargin_showopt(F_FIND, 	  "Find", 	 	  0, 0);
+	botmargin_showopt(F_COPY, 	  "Copy", 	 	  0, 0);
+	botmargin_showopt(F_CUT, 	  "Cut", 	 	  0, 0);
+	botmargin_showopt(F_PASTE,	  "Paste", 	 	  0, 0);
+	botmargin_showopt(F_GOTO, 	  "Goto", 	 	  0, -1);
+	botmargin_showopt(F_RUN, 	  "Run", 	 	  4, 1);
+	botmargin_showopt(F_HELP, 	  "Help", 	 	  0, 3);
+	botmargin_showopt(F_NEXTPAGE, "NPage", 	 	  0, 0);
+	botmargin_showopt(F_PREVPAGE, "PPage", 	 	  0, 0);
+	botmargin_showopt(F_OPEN, 	  "Open", 	 	  0, 0);
+	botmargin_showopt(F_NEW, 	  "New", 		  0, 1);
+	botmargin_showopt(F_MORE, 	  "    More    ", 0, 0);
 
 	/* Add these to the 'next' more: */
 	/*botmargin_showopt("K", "NFile", 0, 1);

@@ -41,7 +41,7 @@ void clean_buff(list_t * buff) {
 }
 
 node_t * thisrow(file_t * file) {
-	return list_get(file->buff, file->rend->y_off + (file->term->cur.y - TOP_MARGIN));
+	return list_get(file->is_modal ? file->is_modal : file->buff, file->rend->y_off + (file->term->cur.y - TOP_MARGIN));
 }
 
 node_t * nextrow(file_t * file) {
@@ -75,6 +75,8 @@ void remove_from_pos_until_empty(list_t * line, int index) {
 uint8_t func_buff(file_t * file, Point cursorPos, node_t * row, node_t * col, int c) {
 	/* return 1 and the character 'c' won't be pushed into the buffer.
 	 * Else, it will perform the function AND push into the buffer */
+	list_t * buff = file->is_modal ? file->modbuff : file->buff;
+
 	switch(c) {
 	case K_BACKSPACE:
 		if(!(cursorPos.x - LEFT_MARGIN) && row->prev) {
@@ -84,7 +86,7 @@ uint8_t func_buff(file_t * file, Point cursorPos, node_t * row, node_t * col, in
 				list_insert_before(row->prev->value, prev_newline, node->value);
 
 			remove_from_pos_until_empty(row->value, 0);
-			list_remove(file->buff, file->rend->y_off +  (cursorPos.y - TOP_MARGIN));
+			list_remove(buff, file->rend->y_off +  (cursorPos.y - TOP_MARGIN));
 		} else {
 			list_remove(row->value, file->rend->x_off + (cursorPos.x - LEFT_MARGIN) - 1);
 		}
@@ -99,7 +101,7 @@ uint8_t func_buff(file_t * file, Point cursorPos, node_t * row, node_t * col, in
 			forl(int i=0, 1, 1, (list_t*)row->next->value)
 				list_insert_before(row->value, col, node->value);
 			remove_from_pos_until_empty(row->next->value, 0);
-			list_remove(file->buff, list_index_of(file->buff, row->next->value));
+			list_remove(buff, list_index_of(buff, row->next->value));
 		} else if(list_get_last(row->value) == col){
 			/* Don't delete \r if that's the only thing that is on this line (this means there's no \n to delete) */
 		} else {
@@ -117,13 +119,15 @@ void push_buff(file_t * file, Point cursorPos, int c) {
 	int row_y = file->rend->y_off + (cursorPos.y - TOP_MARGIN);
 	int row_x = file->rend->x_off + (cursorPos.x - LEFT_MARGIN);
 
-	node_t * rownode = list_get(file->buff, row_y);
+	list_t * buff = file->is_modal ? file->modbuff : file->buff;
+
+	node_t * rownode = list_get(buff, row_y);
 	node_t * node_char;
 	if(rownode) {
 		node_char = list_get(rownode->value, row_x);
 	} else {
 		/* Oops, we might have scrolled down and found a hole there. Fix it with this */
-		rownode = list_get(file->buff, row_y - 1);
+		rownode = list_get(buff, row_y - 1);
 		node_char = list_get(rownode->value, row_x);
 	}
 
@@ -142,7 +146,7 @@ void push_buff(file_t * file, Point cursorPos, int c) {
 
 	if(c == K_NEWLINE) {
 		/* Check if we want to insert or create a new line */
-		list_t * newline = create_line(file->buff, row_y + 1);
+		list_t * newline = create_line(buff, row_y + 1);
 
 		/* Move everything after \n to the next line */
 		list_t * thisline = rownode->value;

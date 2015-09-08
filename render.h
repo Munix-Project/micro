@@ -9,7 +9,6 @@
 #define RENDER_H_
 
 #include "defs.h"
-#include "micro_file.h"
 #include "window.h"
 
 extern render_t * init_renderer();

@@ -6,7 +6,7 @@
  */
 #include "window.h"
 #include "key.h"
-#include "micro_file.h"
+#include "defs.h"
 #include "term.h"
 #include "buffer.h"
 #include "render.h"

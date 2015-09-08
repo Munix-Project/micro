@@ -8,7 +8,7 @@
 #ifndef TERM_H_
 #define TERM_H_
 
-#include "defs.h"
+#include "global.h"
 #include <stdint.h>
 
 #define TERM_NO_AVAIL -1

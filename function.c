@@ -12,10 +12,15 @@
 #include "term.h"
 #include <stdlib.h>
 
+file_t * curfile;
 term_t * term;
 status_t * status;
 
+extern void show_modal(file_t * file, char * header, char * body, char * footer, int modal_type);
+extern void close_modal(file_t * file);
+
 void init_func(file_t * file) {
+	curfile = file;
 	file->term_status = malloc(sizeof(status_t));
 	status = file->term_status;
 	status->quit_fl = 0;
@@ -94,12 +99,17 @@ int f_run() {
 }
 
 int f_save() {
-
 	return 0;
 }
 
-int f_saveas() {
+void f_saveas_finish() {
+	/* Enter key's callback */
+	close_modal(curfile);
+}
 
+int f_saveas() {
+	/* register 'enter' callback to 'f_saveas_cback */
+	show_modal(curfile, "Save as", "File name: ", NULL, MOD_TEXTBOX);
 	return 0;
 }
 
