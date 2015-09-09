@@ -23,6 +23,7 @@ typedef struct {
 	list_t * buff;
 	list_t * modbuff;
 	uint8_t is_modal;
+	modal_t modal;
 	char * filename;
 	char * path;
 	int size;

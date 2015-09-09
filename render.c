@@ -28,6 +28,8 @@ Point old;
 #define BOT_MARGIN_ATTR A_REVERSE
 #define LEF_MARGIN_ATTR A_REVERSE
 
+extern void render_modal(file_t * file);
+
 void set_window_border_defaults() {
 	TOP_MARGIN 		= DEFAULT_TMARG;
 	LEFT_MARGIN 	= DEFAULT_LMARG;
@@ -43,6 +45,9 @@ render_t * init_renderer() {
 	start_color();
 	init_pair(1, COLOR_WHITE, COLOR_BLACK);
 	init_pair(2, COLOR_WHITE, COLOR_BLACK);
+	init_pair(3, COLOR_BLACK, COLOR_WHITE);
+	init_pair(4, COLOR_BLACK, COLOR_WHITE);
+
 	attron(COLOR_PAIR(2));
 
 	return new_renderer;
@@ -203,13 +208,15 @@ void render_all(file_t * file) {
 	 * (respecting the window constraints and
 	 * the sizes for each line and column) */
 
-	if(file->rend->x_off < 0) file->rend->x_off = 0;
-	if(file->rend->y_off < 0) file->rend->y_off = 0;
-
-	file->term->clr();
-
 	/* Switch between contexts. We might render the editor OR a menu which may belong to a function */
-	render_editor(file);
+	if(!file->is_modal) {
+		file->term->clr();
+
+		render_editor(file);
+	} else {
+		/* else we're in a modal. the file modal.c handles that. */
+		render_modal(file);
+	}
 
 	fflush(stdout);
 }

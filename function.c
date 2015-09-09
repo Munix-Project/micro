@@ -11,12 +11,13 @@
 #include "buffer.h"
 #include "term.h"
 #include <stdlib.h>
+#include <string.h>
 
 file_t * curfile;
 term_t * term;
 status_t * status;
 
-extern void show_modal(file_t * file, char * header, char * body, char * footer, int modal_type);
+extern void show_modal(file_t * file, modal_t modal);
 extern void close_modal(file_t * file);
 
 void init_func(file_t * file) {
@@ -109,7 +110,20 @@ void f_saveas_finish() {
 
 int f_saveas() {
 	/* register 'enter' callback to 'f_saveas_cback */
-	show_modal(curfile, "Save as", "File name: ", NULL, MOD_TEXTBOX);
+	modal_t modal;
+	char header[] = "Save as";
+	modal.header = malloc(sizeof(char) * (strlen(header) + 1));
+	strcpy(modal.header, header);
+
+	char body[] = "Enter the file name:";
+	modal.body = malloc(sizeof(char**));
+	modal.body[0] = malloc(sizeof(char*) * (strlen(body) + 1));
+	strcpy(modal.body[0], body);
+	modal.bodysize = 1;
+
+	modal.footer = NULL;
+	modal.type = MOD_TEXTBOX;
+	show_modal(curfile, modal);
 	return 0;
 }
 

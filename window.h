@@ -8,6 +8,8 @@
 #ifndef WINDOW_H_
 #define WINDOW_H_
 
+#include <stdint.h>
+
 #define DEFAULT_TMARG 2
 #define DEFAULT_LMARG 5
 #define DEFAULT_RMARG 3
@@ -35,6 +37,14 @@ enum MODAL_TYPE {
 	MOD_TIMEOUT,
 	MOD_RUN
 };
+
+typedef struct {
+	char * header;
+	char ** body;
+	char * footer;
+	uint16_t bodysize;
+	uint8_t type;
+} modal_t;
 
 extern void set_window_border_defaults(void);
 
