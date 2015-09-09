@@ -41,7 +41,7 @@ void clean_buff(list_t * buff) {
 }
 
 node_t * thisrow(file_t * file) {
-	return list_get(file->is_modal ? file->is_modal : file->buff, file->rend->y_off + (file->term->cur.y - TOP_MARGIN));
+	return list_get(file->is_modal ? file->modbuff : file->buff, file->rend->y_off + (file->term->cur.y - TOP_MARGIN));
 }
 
 node_t * nextrow(file_t * file) {
@@ -115,14 +115,22 @@ uint8_t func_buff(file_t * file, Point cursorPos, node_t * row, node_t * col, in
 }
 
 void push_buff(file_t * file, Point cursorPos, int c) {
+
 	/* push char into micro_buff on a certain location */
 	int row_y = file->rend->y_off + (cursorPos.y - TOP_MARGIN);
 	int row_x = file->rend->x_off + (cursorPos.x - LEFT_MARGIN);
 
 	list_t * buff = file->is_modal ? file->modbuff : file->buff;
 
+	/* Remove offsets in case we're in a modal */
+	if(file->is_modal) {
+		row_y -= file->rend->y_off;
+		row_x -= file->rend->x_off;
+	}
+
 	node_t * rownode = list_get(buff, row_y);
 	node_t * node_char;
+
 	if(rownode) {
 		node_char = list_get(rownode->value, row_x);
 	} else {
@@ -138,6 +146,11 @@ void push_buff(file_t * file, Point cursorPos, int c) {
 		if(func_buff(file, cursorPos, rownode, node_char, c))
 			return;
 	}
+
+	/* Don't push too much data to the modal, except if it's a run command modal */
+	if(((file->is_modal && file->modal.type != MOD_RUN && list_size(list_get(buff, 0)->value) > MODAL_MAXBUFF)) ||
+			(file->is_modal && c == K_NEWLINE))
+		return;
 
 	if(node_char)
 		list_insert_before(rownode->value, node_char, (void*)c);

@@ -52,6 +52,7 @@ node_t * list_get_first(list_t * list);
 int list_index_of_node(list_t * list, node_t * node);
 
 node_t * list_get_next_nth(node_t* node, int increments);
+void list_clear(list_t * list);
 
 #define foreach(i, list) for (node_t * i = (list)->head; i != NULL; i = i->next)
 #define foreachr(i, list) for (node_t * i = (list)->tail; i != NULL; i = i->prev)

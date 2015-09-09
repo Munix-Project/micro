@@ -12,6 +12,7 @@
 #include "render.h"
 #include "function.h"
 #include <stdint.h>
+#include <stdlib.h>
 
 #define CTRL_START 1
 #define CTRL_END CTRL_START + ('Z' - 'A')
@@ -28,6 +29,51 @@ uint8_t fallback = 0;
 
 uint8_t is_esc = 0;
 uint8_t is_ctrl = 0;
+
+list_t * callID;
+list_t * callptr;
+
+void init_keys() {
+	callID = list_create();
+	callptr = list_create();
+}
+
+void clean_keys() {
+	list_free(callID);
+	list_free(callptr);
+	free(callID);
+	free(callptr);
+}
+
+void add_callback(int id, key_cback func_ptr) {
+	list_insert(callID, id);
+	list_insert(callptr, func_ptr);
+}
+
+key_cback get_callback(int id) {
+	int i = 0;
+	foreach(node, callID)
+		if(node->value == id)
+			return (key_cback)(list_get(callptr, i)->value);
+		else i++;
+	return NULL;
+}
+
+void rem_callback(int id) {
+	int i = 0;
+	foreach(node, callID)
+		if(node->value == id) {
+			list_remove(callID, i);
+			list_remove(callptr, i);
+		} else {
+			i++;
+		}
+}
+
+void remall_callbacks() {
+	list_clear(callID);
+	list_clear(callptr);
+}
 
 void cursor_scroll_right(file_t * file) {
 	/* Scroll right */
@@ -122,8 +168,8 @@ void handle_escape(file_t * file, int escode) {
 			VMOVE(DOWN);
 			fallback = FALLBACK_LAST;
 		}
-		}
 		break;
+	}
 	case K_RIGHT: {
 		if(NEEDS_SCROLL_RIGHT()) {
 			/* Check if there is anything else forward that we can scroll into */
@@ -298,6 +344,18 @@ void key_handle(file_t * file) {
 		return; /* No key on the keyboard was hit */
 
 	int c_cpy = consume_input(c);
+
+	key_cback callback_ptr;
+	if((callback_ptr = get_callback(c_cpy))) {
+		int ret;
+		if((ret = callback_ptr(c_cpy, is_esc ? KT_ESC : is_ctrl ? KT_MOD : KT_NORMAL)) == KR_SUCCESS) {
+			return;
+		} else if(ret == KR_ERR) {
+			/* TODO: The callback failed! Handle it here */
+		}
+		/* else we're continuing the key handling */
+	}
+
 	if(is_esc)
 		handle_escape(file, c_cpy);
 	else if(is_ctrl)

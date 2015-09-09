@@ -8,6 +8,7 @@
 #include "defs.h"
 #include "render.h"
 #include "buffer.h"
+#include "key.h"
 #include <stdlib.h>
 
 file_t * create_file(char * where, char * filename) {
@@ -21,6 +22,7 @@ file_t * create_file(char * where, char * filename) {
 	file->size = 0;
 	file->is_modal = 0;
 
+	init_keys();
 	init_func(file);
 	return file;
 }
@@ -30,4 +32,5 @@ void close_file(file_t * file) {
 	clean_renderer(file->rend);
 	clean_buff(file->buff);
 	clean_buff(file->modbuff);
+	clean_keys();
 }

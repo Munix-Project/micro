@@ -23,7 +23,28 @@ enum KEYS {
 	K_LEFT 		= 	'D'
 };
 
+enum KEY_TYPE {
+	KT_NORMAL,
+	KT_ESC,
+	KT_MOD
+};
+
+enum KEY_CALLBACK_RET {
+	KR_SUCCESS,
+	KR_ERR,
+	KR_CONT
+};
+
+extern void init_keys();
+extern void clean_keys();
 extern void key_handle(file_t * file);
+
+typedef int (*key_cback)(int, uint8_t);
+
+extern void add_callback(int id, key_cback func_ptr);
+extern key_cback get_callback(int id);
+extern void rem_callback(int id);
+extern void remall_callbacks();
 
 /* These functions might be useful for the 'function' c file.
  * Because they abstract the mechanisms of the terminal */

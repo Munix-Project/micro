@@ -7,8 +7,14 @@
 
 #include "defs.h"
 #include "window.h"
+#include "key.h"
 #include <curses.h>
 #include <string.h>
+#include <stdlib.h>
+
+uint8_t modal_drawn = 0;
+
+Point editor_cursor;
 
 Point old;
 #define GOTO(x,y) old = file->term->go_to(x, y)
@@ -77,6 +83,8 @@ void draw_body(file_t * file) {
 	int body_lpad = 0;
 	int body_rmarg = 5;
 	for(int i=0, y = 0;i<file->modal.bodysize;i++, y++) {
+		if(!file->modal.body[i]) continue;
+
 		for(int c = 0, len = 0; c < strlen(file->modal.body[i]); c++, len++) {
 			GOTO(body_left + body_lpad, body_top + y);
 			addch(file->modal.body[i][c]);
@@ -106,6 +114,19 @@ void draw_input(file_t * file) {
 		for(int i=3;i < input_right - input_left; i++)
 			addch(' ');
 
+		/* Print user input: */
+		GOTO(input_left + 3, input_bot - 2);
+		node_t * row = (node_t*)list_get(file->modbuff, 0); /* Should be only 1 line */
+		if(row) {
+			int ctr = 0;
+			int input_len = list_size(row->value);
+			foreach(ch, (list_t*)(row->value)) {
+				if(ctr++ >= input_len - 1)
+					break;
+				addch((char)(ch->value));
+			}
+		}
+
 		attroff(COLOR_PAIR(1));
 		attron(COLOR_PAIR(3));
 		GOTO(input_left + 10, input_bot);
@@ -116,7 +137,13 @@ void draw_input(file_t * file) {
 		attroff(COLOR_PAIR(3));
 
 		/* Now position cursor: */
-		GOTO(input_left + 3, input_bot - 2);
+		if(!modal_drawn) {
+			GOTO(input_left + 3, input_bot - 2);
+			file->term->cur.x = input_left - 2;
+			file->term->cur.y = input_bot - 11;
+		} else {
+			GOTO(file->term->cur.x + 5, input_bot - 2);
+		}
 		break;
 	case MOD_RUN:
 
@@ -134,21 +161,27 @@ void draw_input(file_t * file) {
 }
 
 void render_modal(file_t * file) {
-	/* Draw box: */
-	draw_box(file);
+	if(!modal_drawn) {
+		/* Draw box: */
+		draw_box(file);
 
-	/* Header and footer: */
-	draw_header(file);
-	draw_footer(file);
+		/* Header and footer: */
+		draw_header(file);
+		draw_footer(file);
 
-	/* And the body */
-	draw_body(file);
+		/* And the body */
+		draw_body(file);
+	} /* else: the window is already drawn. it's not necessary to draw it again UNLESS a change to the modal has been made */
 
 	/* Now the input textbox (depends on the modal type) */
 	draw_input(file);
+
+	/* The window is now fully drawn. Shrink the window padding to fit only the input */
+	modal_drawn = 1;
 }
 
 void show_modal(file_t * file, modal_t modal) {
+	editor_cursor = file->term->cur;
 	/* only sets the flag so that the modal will be rendered on the next superloop iteration */
 	file->is_modal = 1;
 	file->modal = modal;
@@ -162,7 +195,11 @@ void show_modal(file_t * file, modal_t modal) {
 }
 
 void close_modal(file_t * file) {
+	modal_drawn = 0;
+
 	set_window_border_defaults();
+	GOTO(editor_cursor.x, editor_cursor.y);
+	file->term->cur = editor_cursor;
 
 	free(file->modal.header);
 	for(int i=0;i<file->modal.bodysize;i++)
@@ -171,4 +208,5 @@ void close_modal(file_t * file) {
 	free(file->modal.footer);
 
 	file->is_modal = 0;
+	remall_callbacks();
 }

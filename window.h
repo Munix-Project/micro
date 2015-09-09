@@ -25,6 +25,8 @@ extern int BOTTOM_MARGIN;
 #define DELTA_TOP_SCROLL 1
 #define DELTA_BOTTOM_SCROLL 1
 
+#define MODAL_MAXBUFF 34
+
 typedef struct {
 	int x_off;
 	int y_off;

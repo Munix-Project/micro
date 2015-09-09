@@ -76,7 +76,7 @@ void draw_top_margin(file_t * file) {
 void draw_left_margin(file_t * file) {
 	Point oldp = file->term->cur;
 
-	for(int y=TOP_MARGIN; y < file->term->size.y - BOTTOM_MARGIN && (y - TOP_MARGIN) + file->rend->y_off < list_size(file->buff); y++) {
+	for(int y=TOP_MARGIN; y < file->term->size.y - BOTTOM_MARGIN && (y - TOP_MARGIN) + file->rend->y_off < list_size(file->is_modal ? file->modbuff : file->buff); y++) {
 
 		char itos[LEFT_MARGIN];
 		sprintf(itos, "%d", (y - TOP_MARGIN + 1) + file->rend->y_off);
@@ -211,7 +211,6 @@ void render_all(file_t * file) {
 	/* Switch between contexts. We might render the editor OR a menu which may belong to a function */
 	if(!file->is_modal) {
 		file->term->clr();
-
 		render_editor(file);
 	} else {
 		/* else we're in a modal. the file modal.c handles that. */
@@ -222,9 +221,12 @@ void render_all(file_t * file) {
 }
 
 uint8_t is_loc_void(file_t * file, Point loc) {
-	node_t * rownode = list_get(file->buff, file->rend->y_off + (loc.y - TOP_MARGIN));
+	node_t * rownode = list_get( file->is_modal ? file->modbuff : file->buff,
+								(file->is_modal ? 0 : file->rend->y_off) + (loc.y - TOP_MARGIN));
+
 	if(rownode) {
-		loc.x = file->rend->x_off + (loc.x - LEFT_MARGIN);
+		loc.x = (file->is_modal ? 0 : file->rend->x_off) + (loc.x - LEFT_MARGIN);
+
 		node_t * row_loc = list_get(rownode->value, loc.x - 1 < 0 ? loc.x : loc.x - 1);
 		if(row_loc && row_loc->value != K_NEWLINE)
 			return 0;

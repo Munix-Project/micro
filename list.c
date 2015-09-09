@@ -286,3 +286,10 @@ node_t * list_get_next_nth(node_t* node, int increments) {
 			node=node->next;
 	return node;
 }
+
+void list_clear(list_t * list) {
+	for(int i=0;;i++) {
+		if(!list_get(list,0)) break;
+		list_remove(list, 0);
+	}
+}

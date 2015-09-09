@@ -103,19 +103,31 @@ int f_save() {
 	return 0;
 }
 
-void f_saveas_finish() {
+int f_saveas_finish(int c, uint8_t key_type) {
 	/* Enter key's callback */
 	close_modal(curfile);
+	return 0;
+}
+
+int f_saveas_nav(int c, uint8_t key_type) {
+	if(key_type != KT_ESC) return KR_SUCCESS;
+
+	return KR_CONT;
 }
 
 int f_saveas() {
-	/* register 'enter' callback to 'f_saveas_cback */
+	/* register callbacks */
+	add_callback(K_NEWLINE, f_saveas_finish);
+	add_callback(K_LEFT, f_saveas_nav);
+	add_callback(K_RIGHT, f_saveas_nav);
+	add_callback(K_DOWN, f_saveas_nav);
+
 	modal_t modal;
 	char header[] = "Save as";
 	modal.header = malloc(sizeof(char) * (strlen(header) + 1));
 	strcpy(modal.header, header);
 
-	char body[] = "Enter the file name:";
+	char body[] = "- Enter the file name:";
 	modal.body = malloc(sizeof(char**));
 	modal.body[0] = malloc(sizeof(char*) * (strlen(body) + 1));
 	strcpy(modal.body[0], body);
