@@ -32,6 +32,10 @@ typedef struct {
 	int y_off;
 } render_t;
 
+extern void set_window_border_defaults(void);
+
+/* Modal data */
+
 enum MODAL_TYPE {
 	MOD_OK,
 	MOD_YESNO,
@@ -48,6 +52,22 @@ typedef struct {
 	uint8_t type;
 } modal_t;
 
-extern void set_window_border_defaults(void);
+enum MODAL_MOV{
+	MOD_MOV_RIGHT,
+	MOD_MOV_LEFT
+};
+
+enum MODAL_RET {
+	MODR_CANCEL,
+	MODR_SAVEAS,
+	MODR_OK,
+	MODR_YES,
+	MODR_NO
+};
+
+extern uint8_t modal_is_input_sel;
+extern void modal_texbox_sel_buttons();
+extern void modal_texbox_sel_input();
+extern void modal_texbox_move(uint8_t dir);
 
 #endif /* WINDOW_H_ */

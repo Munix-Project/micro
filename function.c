@@ -18,7 +18,7 @@ term_t * term;
 status_t * status;
 
 extern void show_modal(file_t * file, modal_t modal);
-extern void close_modal(file_t * file);
+extern int8_t close_modal(file_t * file);
 
 void init_func(file_t * file) {
 	curfile = file;
@@ -105,22 +105,44 @@ int f_save() {
 
 int f_saveas_finish(int c, uint8_t key_type) {
 	/* Enter key's callback */
-	close_modal(curfile);
+	int8_t ret = close_modal(curfile);
+	if(ret == MODR_SAVEAS) {
+		/* TODO: Save file to the path set inside the file struct */
+
+	}
 	return 0;
 }
 
 int f_saveas_nav(int c, uint8_t key_type) {
 	if(key_type != KT_ESC) return KR_SUCCESS;
 
-	return KR_CONT;
+	switch(c) {
+	case K_RIGHT:
+		if(modal_is_input_sel) return KR_CONT;
+		modal_texbox_move(MOD_MOV_RIGHT);
+		break;
+	case K_LEFT:
+		if(modal_is_input_sel) return KR_CONT;
+		modal_texbox_move(MOD_MOV_LEFT);
+		break;
+	case K_UP:
+		modal_texbox_sel_input();
+		break;
+	case K_DOWN:
+		modal_texbox_sel_buttons();
+		break;
+	}
+
+	return KR_SUCCESS;
 }
 
 int f_saveas() {
 	/* register callbacks */
 	add_callback(K_NEWLINE, f_saveas_finish);
-	add_callback(K_LEFT, f_saveas_nav);
-	add_callback(K_RIGHT, f_saveas_nav);
-	add_callback(K_DOWN, f_saveas_nav);
+	add_callback(K_LEFT, 	f_saveas_nav);
+	add_callback(K_RIGHT, 	f_saveas_nav);
+	add_callback(K_UP, 		f_saveas_nav);
+	add_callback(K_DOWN, 	f_saveas_nav);
 
 	modal_t modal;
 	char header[] = "Save as";

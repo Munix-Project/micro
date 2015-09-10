@@ -47,6 +47,7 @@ render_t * init_renderer() {
 	init_pair(2, COLOR_WHITE, COLOR_BLACK);
 	init_pair(3, COLOR_BLACK, COLOR_WHITE);
 	init_pair(4, COLOR_BLACK, COLOR_WHITE);
+	init_pair(5, COLOR_WHITE, COLOR_CYAN);
 
 	attron(COLOR_PAIR(2));
 

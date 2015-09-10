@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+int8_t modal_ret = -1;
 uint8_t modal_drawn = 0;
 
 Point editor_cursor;
@@ -19,6 +20,33 @@ Point editor_cursor;
 Point old;
 #define GOTO(x,y) old = file->term->go_to(x, y)
 #define RETCUR() file->term->go_to(old.x, old.y)
+
+/* Specific modal data and functions: */
+
+/* Modal with textbox: */
+uint8_t modal_is_input_sel = 0;
+uint8_t modal_but_sel = 0;
+
+void modal_texbox_sel_buttons() {
+	modal_is_input_sel = 0;
+	modal_but_sel = 1;
+}
+
+void modal_texbox_sel_input() {
+	modal_is_input_sel = 1;
+	modal_but_sel = 0;
+}
+
+void modal_texbox_move(uint8_t dir) {
+	/*1 = Cancel/left button selected
+	 *2 = Save/right button selected */
+	if(dir == MOD_MOV_RIGHT && modal_but_sel == 1)
+		modal_but_sel = 2;
+	else if(dir == MOD_MOV_LEFT && modal_but_sel == 2)
+		modal_but_sel = 1;
+}
+
+/* Global functions for modals: */
 
 void draw_box(file_t * file) {
 	int bot_marg = file->term->size.y - BOTTOM_MARGIN;
@@ -126,18 +154,29 @@ void draw_input(file_t * file) {
 				addch((char)(ch->value));
 			}
 		}
-
 		attroff(COLOR_PAIR(1));
-		attron(COLOR_PAIR(3));
+
+
+		/* Buttons: */
+		if(modal_but_sel == 1)
+			attron(COLOR_PAIR(5) | A_BOLD);
+		else
+			attron(COLOR_PAIR(3));
 		GOTO(input_left + 10, input_bot);
 		addstr(" Cancel ");
+		attroff(COLOR_PAIR(3) | COLOR_PAIR(5) | A_BOLD);
 
+		if(modal_but_sel == 2)
+			attron(COLOR_PAIR(5) | A_BOLD);
+		else
+			attron(COLOR_PAIR(3));
 		GOTO(input_right - 16, input_bot);
 		addstr(" Save ");
-		attroff(COLOR_PAIR(3));
+		attroff(COLOR_PAIR(3) | COLOR_PAIR(5) | A_BOLD);
 
 		/* Now position cursor: */
 		if(!modal_drawn) {
+			modal_is_input_sel = 1;
 			GOTO(input_left + 3, input_bot - 2);
 			file->term->cur.x = input_left - 2;
 			file->term->cur.y = input_bot - 11;
@@ -194,8 +233,10 @@ void show_modal(file_t * file, modal_t modal) {
 		LEFT_MARGIN = RIGHT_MARGIN = file->term->size.x / 7;
 }
 
-void close_modal(file_t * file) {
+int8_t close_modal(file_t * file) {
 	modal_drawn = 0;
+
+	modal_is_input_sel = 0;
 
 	set_window_border_defaults();
 	GOTO(editor_cursor.x, editor_cursor.y);
@@ -209,4 +250,11 @@ void close_modal(file_t * file) {
 
 	file->is_modal = 0;
 	remall_callbacks();
+
+	if(!modal_is_input_sel && file->modal.type == MOD_TEXTBOX)
+		modal_ret = MODR_SAVEAS;
+	if(modal_but_sel == 1)
+		modal_ret = MODR_CANCEL;
+
+	return modal_ret;
 }
